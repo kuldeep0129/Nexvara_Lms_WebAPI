@@ -1,0 +1,6 @@
+@Nexvara.WebAPI_HostAddress = http://localhost:5076
+
+GET {{Nexvara.WebAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
