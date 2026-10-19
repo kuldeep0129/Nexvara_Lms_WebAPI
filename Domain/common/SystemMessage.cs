@@ -45,5 +45,9 @@ namespace Domain.common
         public const string EmailAlreadyConfirmed = "Email is already confirmed.";
         public const string EmailConfirmedSuccess = "Email confirmed successfully.";
         public const string InvalidORExpiredEmailLink = "Invalid or expired email confirmation link.";
+        public const string RecordCreate = "Record Create Successfull.";
+        public const string RecordUpdate = "Record Update Successfull.";
+        public const string RecordFetch = "Record Fetch Successfull.";
+        public const string RecordStatusChange = "Record Status  Changed Successfull.";
     }
 }

@@ -17,8 +17,8 @@ namespace Domain.Entities.Student
         [ForeignKey(nameof(LiveClassId))]
         public LiveClasses? liveClasses { get; set; }
 
-        public string? UserId { get; set; }
-        [ForeignKey(nameof(UserId))]
+        public string? StudentId { get; set; }
+        [ForeignKey(nameof(StudentId))]
         public ApplicationUser? user { get; set; }
 
         public DateTime JoinedAt { get; set; }

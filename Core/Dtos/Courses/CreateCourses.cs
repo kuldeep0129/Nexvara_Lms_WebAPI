@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Core.Dtos.Courses
 {
-    public class CreateCoursesDto
+    public class CreateCourses
     {
 
         [Required, MaxLength(180)]
@@ -40,5 +40,9 @@ namespace Core.Dtos.Courses
 
         public int SortOrder { get; set; } = 0;
         public bool IsFeatured { get; set; } = false;
+
+        public string? Icon { get; set; }
+        public string? ColorCode { get; set; }
+        public string? SoftColorCode { get; set; }
     }
 }

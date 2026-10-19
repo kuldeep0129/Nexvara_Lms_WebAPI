@@ -27,5 +27,6 @@ namespace Domain.Entities.Common
         public string? MeetingProvider { get; set; }
         public string? MeetingUrl { get; set; }
         public string? RecordingUrl { get; set; }
+        public string? RecordingUrlPublicId { get; set; }
     }
 }

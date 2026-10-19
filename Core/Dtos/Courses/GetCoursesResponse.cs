@@ -23,7 +23,10 @@ namespace Core.Dtos.Courses
         public string? ImageUrl { get; set; }
         public bool IsPublished { get; set; } 
         public int SortOrder { get; set; } 
-        public bool IsFeatured { get; set; } 
+        public bool IsFeatured { get; set; }
+        public string? Icon { get; set; }
+        public string? ColorCode { get; set; }
+        public string? SoftColorCode { get; set; }
         public bool IsActive { get; set; }
     }
 }

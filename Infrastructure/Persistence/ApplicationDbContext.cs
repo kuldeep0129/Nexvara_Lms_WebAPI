@@ -1,4 +1,5 @@
 ﻿using Domain.Entities;
+using Domain.Entities.Common;
 using Domain.Entities.Student;
 using Domain.Entities.Teacher;
 using Domain.Entities.UserInterface;
@@ -37,6 +38,14 @@ namespace Infrastructure.Persistence
         public DbSet<Organization> Organizations { get; set; }
         public DbSet<StudentProfile> StudentProfiles { get; set; }
         public DbSet<TeacherProfiles> TeacherProfiles { get; set; }
+        public DbSet<CourseModule> CourseModules { get; set; }
+        public DbSet<Batch> Batches { get; set; }
+        public DbSet<BatchTeacher> BatchTeachers { get; set; }
+        public DbSet<BatchStudent> BatchStudents { get; set; }
+        public DbSet<LiveClasses> LiveClasses { get; set; }
+        public DbSet<ClassAttendance> ClassAttendances { get; set; }
+        public DbSet<CourseVideos> CourseVideos { get; set; }
+        public DbSet<VideoProgress> VideoProgresses { get; set; }
 
     }
 }

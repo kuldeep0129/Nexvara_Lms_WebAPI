@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Core.Dtos.Courses;
 using Core.Dtos.Profile;
 using Core.Dtos.UserInterFace;
 using Core.Dtos.UserInterFace.GetUserInterface;
@@ -379,6 +380,38 @@ namespace Core.Mapping
                   opt => opt.MapFrom(src => src.user != null
                       ? src.user.PhoneNumber : null));
 
+            #endregion
+
+            #region Course
+            //create Course
+            CreateMap<CreateCourses, Course>()
+           .ForMember(dest => dest.Id, opt => opt.Ignore());
+            CreateMap<CreateCourses, CourseSettings>()
+           .ForMember(dest => dest.Id, opt => opt.Ignore())
+           .ForMember(dest => dest.CourseId, opt => opt.Ignore())
+           .ForMember(dest => dest.Course, opt => opt.Ignore());
+
+
+            //update course 
+            CreateMap<UpdateCourses, Course>()
+               .ForMember(dest => dest.Id, opt => opt.Ignore())
+               .ForMember(dest => dest.CreateAt, opt => opt.Ignore())
+               .ForMember(dest => dest.CreateBy, opt => opt.Ignore())
+               .ForMember(dest => dest.UpdateAt, opt => opt.Ignore())
+               .ForMember(dest => dest.UpdateBy, opt => opt.Ignore());
+
+
+            // Update CourseSettings
+            CreateMap<UpdateCourses, CourseSettings>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CourseId, opt => opt.Ignore())
+                .ForMember(dest => dest.Course, opt => opt.Ignore())
+                .ForMember(dest => dest.CreateAt, opt => opt.Ignore())
+                .ForMember(dest => dest.CreateBy, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdateAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdateBy, opt => opt.Ignore());
+
+           
             #endregion
         }
     }

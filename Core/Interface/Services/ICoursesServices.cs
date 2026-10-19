@@ -13,8 +13,22 @@ namespace Core.Interface.Services
     {
         Task<ResponseDto<object>> CreateCoursesAsync(CreateCourses course, string userId);
         Task<ResponseDto<object>> UpdateCoursesAsync(UpdateCourses course, string userId);
-        Task<ResponseDto<object>> UpdateStatusCoursesAsync(string userId);
-        Task<ResponseDto<object>> GetByIdCoursesAsync(string userId);
+        Task<ResponseDto<object>> UpdateStatusCoursesAsync(int Id,string userId);
+        Task<ResponseDto<object>> GetByIdCoursesAsync(int Id);
         Task<ResponseDto<object>> GetListCoursesAsync(PaginationRequestDto dto);
+
+        //CourseModule
+        Task<ResponseDto<object>> CreateCoursesModuleAsync(CreateCourseModuleDto course, string userId);
+        Task<ResponseDto<object>> UpdateCoursesModuleAsync(UpdateCourseModule course, string userId);
+        Task<ResponseDto<object>> UpdateStatusCoursesModuleAsync(int Id, string userId);
+        Task<ResponseDto<object>> GetByIdCoursesModuleAsync(int Id);
+        Task<ResponseDto<object>> GetListCoursesModuleAsync(PaginationRequestDto dto);
+
+        //Batch
+        Task<ResponseDto<object>> CreateBatchAsync(CreateBatchDto dto, string userId);
+        Task<ResponseDto<object>> UpdateBatchAsync(UpdateCourseBatchDto dto, string userId);
+        Task<ResponseDto<object>> UpdateStatusBatchAsync(int Id, string userId);
+        Task<ResponseDto<object>> GetByIdBatchAsync(int Id);
+        Task<ResponseDto<object>> GetListBatchAsync(PaginationRequestDto dto);
     }
 }

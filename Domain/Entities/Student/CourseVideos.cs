@@ -26,6 +26,7 @@ namespace Domain.Entities.Student
         public string Title { get; set; }
         public string? Description { get; set; }
         public string? VideoUrl { get; set; }
+        public string? VideoUrlPublicId { get; set; }
         public string? DurationInSeconds { get; set; }
         public string? DisplayOrder { get; set; }
         public bool IsPublished { get; set; }
