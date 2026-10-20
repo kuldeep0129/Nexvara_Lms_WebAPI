@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Azure;
+using CloudinaryDotNet.Actions;
 using Core.Dtos.Account;
 using Core.Dtos.Common;
 using Core.Dtos.Profile;
@@ -12,6 +13,7 @@ using Domain.Entities.Teacher;
 using Domain.Enums;
 using Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -77,6 +79,35 @@ namespace Infrastructure.Services
                 response.Message = SystemMessage.InvalidPassword;
                 return response;
             }
+
+            if (!user.EmailConfirmed)
+            {
+                var token1 = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+
+                var encodedToken = WebEncoders.Base64UrlEncode(
+                    Encoding.UTF8.GetBytes(token1)
+                );
+
+                var confirmationUrl =
+                    $"{_configuration["Frontend:BaseUrl"]}/confirm-email" +
+                    $"?userId={Uri.EscapeDataString(user.Id)}" +
+                    $"&token={Uri.EscapeDataString(encodedToken)}";
+
+                await _emailServices.SendEmailConfirmationAsync(
+                    user.Email!,
+                    user.FullName ?? user.Email!,
+                    confirmationUrl,
+                    default
+                );
+
+                response.Success = false;
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                response.Message =
+                    "Please verify your email. A new verification link has been sent to your email address.";
+
+                return response;
+            }
+
             //refereh token
             var rawRefreshToken = GenerateRefreshToken();
             var refreshTokenExpiry = GetRefreshTokenExpiry();
@@ -331,7 +362,7 @@ namespace Infrastructure.Services
             if (!res.Succeeded)
             {
                 response.Success = false;
-                response.Message = string.Join(", ", res.Errors.Select(e => e.Description));
+                response.Message = SystemMessage.AlreadyUseEmail.Replace("{Email}", data.Email);
                 response.ResponseCode = (int)APIResponseCodes.BadRequest;
                 return response;
             }
@@ -354,9 +385,42 @@ namespace Infrastructure.Services
             var token = await _userManager.GenerateEmailConfirmationTokenAsync(data);
             //token url convert base 64
             var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
-            var confirmationUrl = $"{_configuration["Frontend:BaseUrl"]}/confirm-email"+
+            var confirmationUrl = $"{_configuration["Frontend:BaseUrl"]}/confirm-email" +
                 $"?userId={data.Id}&token={encodedToken}";
-            await _emailServices.SendEmailConfirmationAsync(  data.Email!,data.UserName ?? data.Email!,confirmationUrl, default);
+            await _emailServices.SendEmailConfirmationAsync(data.Email!, data.FullName ?? data.Email!, confirmationUrl, default);
+            switch (dto.Role.ToString())
+            {
+                case "Student":
+                    {
+                        var studentProfile = new StudentProfile
+                        {
+                            UserId = data.Id,
+                            IsActive = true,
+                            CreateAt = DateTime.UtcNow
+                        };
+
+                        await _accountRepository.StudentProfileAsync(studentProfile);
+                        await _unitOfWork.SaveAsync();
+                        break;
+                    }
+
+                case "Trainer":
+                    {
+                        var teacherProfile = new TeacherProfiles
+                        {
+                            UserId = data.Id,
+                            IsActive = true,
+                            CreateAt = DateTime.UtcNow
+                        };
+
+                        await _accountRepository.TeacherProfileAsync(teacherProfile);
+                        await _unitOfWork.SaveAsync();
+                        break;
+                    }
+
+                default:
+                    break;
+            }
             response.Success = true;
             response.Message = SystemMessage.UserRegisterSuccess;
             response.ResponseCode = (int)APIResponseCodes.OK;
@@ -364,7 +428,8 @@ namespace Infrastructure.Services
 
         }
 
-        public async Task<ResponseDto<object>> StudentProfileAsync(CreateStudentProfile profile, string userId)
+
+        public async Task<ResponseDto<object>> StudentProfileAsync([FromForm] CreateStudentProfile profile, string userId)
         {
             var response = new ResponseDto<object>();
             if (profile == null)
@@ -382,18 +447,28 @@ namespace Infrastructure.Services
                 response.ResponseCode = (int)APIResponseCodes.UnAuthrized;
                 return response;
             }
-            var studentProfile = _mapper.Map<StudentProfile>(profile);
-            studentProfile.UserId = userId;
+            var studentProfile = await _accountRepository.GetByIdStudentProfileAsync(userId);
+            if (studentProfile == null)
+            {
+                response.Success = false;
+                response.Message = SystemMessage.RecordNotFound;
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                return response;
+            }
             if (profile.ProfileImage != null && profile.ProfileImage.Length > 0)
             {
                 var uploadResult = await _uploadServices.UploadCloubinaryAsync(profile.ProfileImage, "students/profile", default);
                 studentProfile.ProfileImageUrl = uploadResult.Url;
                 studentProfile.ProfileImagePublicId = uploadResult.PublicId;
             }
-            studentProfile.IsActive =true;
-            studentProfile.CreateAt = DateTime.Now;
-            studentProfile.CreateBy = userId;
-            await _accountRepository.StudentProfileAsync(studentProfile);
+            studentProfile.DateOfBirth = profile.DateOfBirth;
+            studentProfile.Gender = profile.Gender.ToString();
+            studentProfile.Address = profile.Address;
+            studentProfile.Qualification = profile.Qualification;
+            studentProfile.CollegeName = profile.collegename;
+            studentProfile.PassingYear = profile.Passingyear;
+            studentProfile.UpdateAt = DateTime.Now;
+            studentProfile.UpdateBy = userId;
             await _unitOfWork.SaveAsync();
             response.Success = true;
             response.Message = SystemMessage.UpdateStudentProfileSuccess;
@@ -401,7 +476,7 @@ namespace Infrastructure.Services
             return response;
         }
 
-        public async Task<ResponseDto<object>> UpdateStudentProfileAsync(CreateStudentProfile profile, string userId)
+        public async Task<ResponseDto<object>> UpdateStudentProfileAsync([FromForm] CreateStudentProfile profile, string userId)
         {
             var response = new ResponseDto<object>();
 
@@ -424,7 +499,7 @@ namespace Infrastructure.Services
             }
 
             // Get existing profile
-            var studentProfile =  await _accountRepository.GetByIdStudentProfileAsync(userId);
+            var studentProfile = await _accountRepository.GetByIdStudentProfileAsync(userId);
 
             if (studentProfile == null)
             {
@@ -440,13 +515,13 @@ namespace Infrastructure.Services
             // New profile image
             if (profile.ProfileImage != null && profile.ProfileImage.Length > 0)
             {
-                if (!string.IsNullOrWhiteSpace(  studentProfile.ProfileImagePublicId))
+                if (!string.IsNullOrWhiteSpace(studentProfile.ProfileImagePublicId))
                 {
                     await _uploadServices.DeleteCloubinaryAsync(studentProfile.ProfileImagePublicId);
                 }
 
                 // Upload new image
-                var uploadResult =  await _uploadServices.UploadCloubinaryAsync(   profile.ProfileImage,  "students/profile",  default);
+                var uploadResult = await _uploadServices.UploadCloubinaryAsync(profile.ProfileImage, "students/profile", default);
                 studentProfile.ProfileImageUrl = uploadResult.Url;
 
                 studentProfile.ProfileImagePublicId = uploadResult.PublicId;
@@ -474,7 +549,7 @@ namespace Infrastructure.Services
             }
             var data = await _accountRepository.GetByIdStudentProfileAsync(userId);
             var map = _mapper.Map<StudentProfileResponseDto>(data);
-          
+
             response.Success = true;
             response.Message = SystemMessage.StudentFetchSuccess;
             response.ResponseCode = (int)APIResponseCodes.OK;
@@ -494,7 +569,7 @@ namespace Infrastructure.Services
             }
             var pagedStudents = await _accountRepository.GetListStudentProfileAsync(dto.PageNumber, dto.PageSize);
             var students = _mapper.Map<List<StudentProfileResponseDto>>(pagedStudents.Items);
-            
+
             var result = new PageResultDto<StudentProfileResponseDto>
             {
                 Items = students,
@@ -560,18 +635,26 @@ namespace Infrastructure.Services
                 response.ResponseCode = (int)APIResponseCodes.UnAuthrized;
                 return response;
             }
-            var teacherProfile = _mapper.Map<TeacherProfiles>(profile);
-            teacherProfile.UserId = userId;
+            var teacherProfile = await _accountRepository.GetByIdTeacherProfileAsync(userId);
+            if (teacherProfile == null)
+            {
+                response.Success = false;
+                response.Message = SystemMessage.RecordNotFound;
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                return response;
+            }
             if (profile.ProfileImage != null && profile.ProfileImage.Length > 0)
             {
                 var uploadResult = await _uploadServices.UploadCloubinaryAsync(profile.ProfileImage, "Teacher/profile", default);
                 teacherProfile.ProfileImageUrl = uploadResult.Url;
                 teacherProfile.ProfileImagePublicId = uploadResult.PublicId;
             }
-            teacherProfile.IsActive = true;
-            teacherProfile.CreateAt = DateTime.Now;
-            teacherProfile.CreateBy = userId;
-            await _accountRepository.TeacherProfileAsync(teacherProfile);
+            teacherProfile.Qualification = profile.Qualification;
+            teacherProfile.ExperienceYears = profile.Experienceyear;
+            teacherProfile.Bio = profile.bio;
+            teacherProfile.Specialization = profile.specialization;
+            teacherProfile.UpdateAt = DateTime.Now;
+            teacherProfile.UpdateBy = userId;
             await _unitOfWork.SaveAsync();
             response.Success = true;
             response.Message = SystemMessage.UpdateProfileSuccess;
@@ -721,10 +804,10 @@ namespace Infrastructure.Services
             return response;
         }
 
-        public async Task<ResponseDto<object>> ConfirmEmailAsync(string userId,string token)
+        public async Task<ResponseDto<object>> ConfirmEmailAsync(string userId, string token)
         {
             var response = new ResponseDto<object>();
-            if(string.IsNullOrWhiteSpace(userId))
+            if (string.IsNullOrWhiteSpace(userId))
             {
                 response.Message = SystemMessage.InvalidId;
                 response.Success = false;
@@ -732,14 +815,14 @@ namespace Infrastructure.Services
                 return response;
             }
             var res = await _userManager.FindByIdAsync(userId);
-            if(res == null)
+            if (res == null)
             {
                 response.Message = SystemMessage.RecordNotFound;
                 response.Success = false;
                 response.ResponseCode = (int)APIResponseCodes.BadRequest;
                 return response;
             }
-            if(res.EmailConfirmed)
+            if (res.EmailConfirmed)
             {
                 response.Success = true;
                 response.Message = SystemMessage.EmailAlreadyConfirmed;
@@ -747,7 +830,7 @@ namespace Infrastructure.Services
                 return response;
             }
             var decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token));
-            var result = await _userManager.ConfirmEmailAsync( res,decodedToken);
+            var result = await _userManager.ConfirmEmailAsync(res, decodedToken);
 
             if (!result.Succeeded)
             {
@@ -767,7 +850,7 @@ namespace Infrastructure.Services
         public async Task<ResponseDto<object>> ForgotPasswordAsync(ForgotPasswordDto dto)
         {
             var response = new ResponseDto<object>();
-            if(dto == null)
+            if (dto == null)
             {
                 response.Message = SystemMessage.RequestBodyNull;
                 response.Success = false;
@@ -775,21 +858,21 @@ namespace Infrastructure.Services
                 return response;
             }
             var user = await _userManager.FindByEmailAsync(dto.Email.Trim());
-            if(user == null)
+            if (user == null)
             {
                 response.Message = SystemMessage.RecordNotFound;
                 response.Success = false;
                 response.ResponseCode = (int)APIResponseCodes.BadRequest;
                 return response;
             }
-            var token =   await _userManager.GeneratePasswordResetTokenAsync(user);
-            var encodedToken = WebEncoders.Base64UrlEncode(   Encoding.UTF8.GetBytes(token));
-            var resetUrl = $"{"_frontendSettings.BaseUrl"}/reset-password" + $"?userId={Uri.EscapeDataString(user.Id)}" +  $"&token={Uri.EscapeDataString(encodedToken)}";
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+            var resetUrl = $"{"_frontendSettings.BaseUrl"}/reset-password" + $"?userId={Uri.EscapeDataString(user.Id)}" + $"&token={Uri.EscapeDataString(encodedToken)}";
             await _emailServices.SendPasswordResetAsync(user.Email!, user.UserName ?? user.Email!, resetUrl);
 
             response.Success = true;
-            response.Message =  SystemMessage.ResetPasswordSentEmail;
-            response.ResponseCode =  (int)APIResponseCodes.OK;
+            response.Message = SystemMessage.ResetPasswordSentEmail;
+            response.ResponseCode = (int)APIResponseCodes.OK;
             return response;
         }
 
@@ -809,27 +892,27 @@ namespace Infrastructure.Services
             {
                 response.Success = false;
                 response.Message = SystemMessage.InvalidORExpiredEmailLink;
-                response.ResponseCode =  (int)APIResponseCodes.BadRequest;
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
                 return response;
             }
 
-            var user =  await _userManager.FindByIdAsync(dto.UserId);
+            var user = await _userManager.FindByIdAsync(dto.UserId);
 
             if (user == null)
             {
                 response.Success = false;
                 response.Message = SystemMessage.RecordNotFound;
-                response.ResponseCode =  (int)APIResponseCodes.BadRequest;
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
                 return response;
             }
 
-            var decodedToken =  Encoding.UTF8.GetString( WebEncoders.Base64UrlDecode(dto.Token));
-            var result =  await _userManager.ResetPasswordAsync(  user, decodedToken,dto.NewPassword);
+            var decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(dto.Token));
+            var result = await _userManager.ResetPasswordAsync(user, decodedToken, dto.NewPassword);
             if (!result.Succeeded)
             {
                 response.Success = false;
                 response.Message = SystemMessage.InvalidORExpiredEmailLink;
-                response.ResponseCode =(int)APIResponseCodes.BadRequest;
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
                 return response;
             }
 
@@ -837,6 +920,37 @@ namespace Infrastructure.Services
             response.Message = SystemMessage.PasswordResetSuccess;
             response.ResponseCode = (int)APIResponseCodes.OK;
             return response;
+        }
+
+        public async Task<ResponseDto<object>> GetCommonProfileDto(string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null)
+            {
+                throw new Exception("User not found.");
+            }
+
+            var roles = await _userManager.GetRolesAsync(user);
+            var Role = roles.FirstOrDefault() ?? "";
+
+            switch (Role)
+            {
+                case "Student":
+                    {
+                        var result = await GetByIdStudentProfileAsync(userId);
+                        return result;
+                    }
+
+                case "Trainer":
+                    {
+                        var result = await GetByIdTeacherProfileAsync(userId);
+                        return result;
+                    }
+
+                default:
+                    throw new Exception("Invalid role.");
+            }
         }
     }
 }

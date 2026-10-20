@@ -9,6 +9,7 @@ namespace Domain.common
     public static class SystemMessage
     {
         public const string SaveSuccess = "Data Saved Successfull..";
+        public const string AlreadyUseEmail = "The email address {Email} is already registered.";
         public const string LoginSuccess = "Login Successfull..";
         public const string UnAuthorized = "User is UnAuthrized.";
         public const string UserRegisterSuccess = "User registered and role assigned successfully.";

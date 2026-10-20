@@ -22,12 +22,12 @@ namespace Infrastructure.Repositories
 
         public async Task<StudentProfile?> GetByIdStudentProfileAsync(string Id)
         {
-          return  await _context.StudentProfiles.Include(x=> x.user).FirstOrDefaultAsync(x=> x.UserId == Id && x.IsActive );
+          return  await _context.StudentProfiles.Include(x=> x.user).FirstOrDefaultAsync(x=> x.UserId == Id  );
         }
 
         public async Task<TeacherProfiles?> GetByIdTeacherProfileAsync(string Id)
         {
-            return await _context.TeacherProfiles.Include(x=> x.user).FirstOrDefaultAsync(x => x.UserId == Id && x.IsActive);
+            return await _context.TeacherProfiles.Include(x=> x.user).FirstOrDefaultAsync(x => x.UserId == Id );
         }
 
         public async Task<PageResultDto<StudentProfile>?> GetListStudentProfileAsync(int pageNumber, int pageSize)

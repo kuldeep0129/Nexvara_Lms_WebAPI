@@ -15,9 +15,9 @@ namespace Domain.Enums
     public enum GenderEnum
     {
         [Description("Male")]
-        Male = 0,
+        Male = 1,
         [Description("Female")]
-        Female = 1,
+        Female = 2,
         [Description("Other")]
         Other = 3,
 

@@ -35,5 +35,8 @@ namespace Core.Interface.Services
         Task<ResponseDto<object>> UpdateStatusTeacherProfileAsync(string userId);
         Task<ResponseDto<object>> GetByIdTeacherProfileAsync(string userId);
         Task<ResponseDto<object>> GetListTeacherProfileAsync(PaginationRequestDto dto);
+
+        //common profile
+        Task<ResponseDto<object>> GetCommonProfileDto(string userId );
     }
 }

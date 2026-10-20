@@ -207,5 +207,21 @@ namespace Nexvara.WebAPI.Controllers
             var result = await _accountServices.GetListTeacherProfileAsync(dto);
             return StatusCode((int)result.ResponseCode, result);
         }
+
+
+
+        [HttpGet("Get-Common-Profile")]
+        [Authorize]
+        public async Task<IActionResult> GetCommonProfile([FromQuery] string Id)
+        {
+            var   userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Unauthorized();
+            }
+            var result = await _accountServices.GetCommonProfileDto(userId);
+            return StatusCode((int)result.ResponseCode, result);
+        }
     }
 }
