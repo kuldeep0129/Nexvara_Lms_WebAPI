@@ -172,11 +172,11 @@ builder.Services.AddSwaggerGen(options =>
 var app = builder.Build();
 await SeederData.SeedAsync(app.Services);
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
+//if (app.Environment.IsDevelopment())
+//{
     app.UseSwagger();
     app.UseSwaggerUI();
-}
+//}
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseCors("ReactPolicy");
