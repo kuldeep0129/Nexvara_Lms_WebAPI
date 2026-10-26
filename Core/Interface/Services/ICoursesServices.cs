@@ -16,6 +16,8 @@ namespace Core.Interface.Services
         Task<ResponseDto<object>> UpdateStatusCoursesAsync(int Id,string userId);
         Task<ResponseDto<object>> GetByIdCoursesAsync(int Id);
         Task<ResponseDto<object>> GetListCoursesAsync(PaginationRequestDto dto);
+        Task<ResponseDto<object>> GetListCoursesFeaturesAsync(PaginationRequestDto dto);
+        Task<ResponseDto<object>> GetListCoursesPublishAsync(PaginationRequestDto dto);
 
         //CourseModule
         Task<ResponseDto<object>> CreateCoursesModuleAsync(CreateCourseModuleDto course, string userId);

@@ -14,6 +14,6 @@ namespace Core.Dtos.Courses
         public int? BatchId { get; set; }
         public string? TeacherId { get; set; }
         public bool IsPrimary { get; set; }
-        public DateOnly AssignedAt { get; set; }
+        public DateTime AssignedAt { get; set; }
     }
 }

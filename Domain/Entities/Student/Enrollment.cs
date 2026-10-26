@@ -17,10 +17,10 @@ namespace Domain.Entities.Student
         public string? StudentId { get; set; }
         [ForeignKey(nameof(StudentId))]
         public ApplicationUser? user { get; set; }
-        public string? CourseId { get; set; }
+        public int? CourseId { get; set; }
         [ForeignKey(nameof(CourseId))]
         public Course? course { get; set; }
-        public string? BatchId { get; set; }
+        public int? BatchId { get; set; }
         [ForeignKey(nameof(BatchId))]
         public Batch? batch { get; set; }
         public DateTime? EnrollmentDate { get; set; }

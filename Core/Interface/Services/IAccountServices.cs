@@ -38,5 +38,8 @@ namespace Core.Interface.Services
 
         //common profile
         Task<ResponseDto<object>> GetCommonProfileDto(string userId );
+        Task<ResponseDto<object>> ChangePasswordAsync(ChangePasswordDto dto, string userId
+);
+
     }
 }

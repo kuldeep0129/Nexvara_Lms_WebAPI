@@ -1,4 +1,5 @@
 ﻿using Domain.Entities.Common;
+using Domain.Entities.Teacher;
 using Domain.Entities.UserInterface;
 using System;
 using System.Collections.Generic;
@@ -18,9 +19,14 @@ namespace Domain.Entities
         [ForeignKey(nameof(CourseId))]
         public Course? course { get; set; }
         public string? Name { get; set; }
+
         public string? BatchCode { get; set; }
+        public string? Description { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public int? Capacity { get; set; }
+        public string? Status { get; set; }
+        public bool IsPublished { get; set; }
+        public ICollection<BatchTeacher> BatchTeachers { get; set; }   = new List<BatchTeacher>();
     }
 }

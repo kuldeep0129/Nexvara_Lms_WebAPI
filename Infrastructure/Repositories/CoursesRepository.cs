@@ -217,6 +217,60 @@ namespace Infrastructure.Repositories
             };
         }
 
+        public async Task<PageResultDto<GetCoursesDto>> GetListCourseFeatureAsync(int pageNumber, int pageSize)
+        {
+            var query = _context.Courses.AsNoTracking().Select(x => new GetCoursesDto
+            {
+                Id = x.Id,
+                Title = x.Title,
+                Slug = x.Slug,
+                Summary = x.Summary,
+                Points = x.Points,
+                Technologies = x.Technologies,
+                Description = x.Description,
+                Duration = x.Duration,
+                Demand = x.Demand,
+                Star = x.Star,
+                Level = x.Level,
+                ImageUrl = x.ImageUrl,
+                IsPublished = x.IsPublished,
+                SortOrder = x.SortOrder,
+                IsFeatured = x.IsFeatured,
+                IsActive = x.IsActive,
+
+                Icon = _context.CourseSettings
+             .Where(s => s.CourseId == x.Id)
+             .Select(s => s.Icon)
+             .FirstOrDefault(),
+
+                ColorCode = _context.CourseSettings
+             .Where(s => s.CourseId == x.Id)
+             .Select(s => s.ColorCode)
+             .FirstOrDefault(),
+
+                SoftColorCode = _context.CourseSettings
+             .Where(s => s.CourseId == x.Id)
+             .Select(s => s.SoftColorCode)
+             .FirstOrDefault()
+            }).Where(x=> x.IsFeatured == true);
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .OrderBy(x => x.SortOrder)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PageResultDto<GetCoursesDto>
+            {
+                Items = items,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
+        }
+
         public async Task<PageResultDto<GetCourseModuleDto>?> GetListCourseModuleAsync(int pageNumber, int pageSize)
         {
            var query =  _context.CourseModules.AsNoTracking().Include(x => x.course)
@@ -238,6 +292,60 @@ namespace Infrastructure.Repositories
                .ToListAsync();
 
             return new PageResultDto<GetCourseModuleDto>
+            {
+                Items = items,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
+        }
+
+        public async Task<PageResultDto<GetCoursesDto>> GetListCoursePublishAsync(int pageNumber, int pageSize)
+        {
+            var query = _context.Courses.AsNoTracking().Select(x => new GetCoursesDto
+            {
+                Id = x.Id,
+                Title = x.Title,
+                Slug = x.Slug,
+                Summary = x.Summary,
+                Points = x.Points,
+                Technologies = x.Technologies,
+                Description = x.Description,
+                Duration = x.Duration,
+                Demand = x.Demand,
+                Star = x.Star,
+                Level = x.Level,
+                ImageUrl = x.ImageUrl,
+                IsPublished = x.IsPublished,
+                SortOrder = x.SortOrder,
+                IsFeatured = x.IsFeatured,
+                IsActive = x.IsActive,
+
+                Icon = _context.CourseSettings
+              .Where(s => s.CourseId == x.Id)
+              .Select(s => s.Icon)
+              .FirstOrDefault(),
+
+                ColorCode = _context.CourseSettings
+              .Where(s => s.CourseId == x.Id)
+              .Select(s => s.ColorCode)
+              .FirstOrDefault(),
+
+                SoftColorCode = _context.CourseSettings
+              .Where(s => s.CourseId == x.Id)
+              .Select(s => s.SoftColorCode)
+              .FirstOrDefault()
+            }).Where(x=> x.IsPublished == true);
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .OrderBy(x => x.SortOrder)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PageResultDto<GetCoursesDto>
             {
                 Items = items,
                 PageNumber = pageNumber,

@@ -27,7 +27,7 @@ namespace Nexvara.WebAPI.Controllers
         #region create 
         [HttpPost("Create-Course")]
         [Authorize]
-        public async Task<IActionResult> CreateCourse([FromBody] CreateCourses course)
+        public async Task<IActionResult> CreateCourse([FromForm] CreateCourses course)
         {
             var userId = _userManger.GetUserId(User);
             if (userId == null)
@@ -77,7 +77,8 @@ namespace Nexvara.WebAPI.Controllers
         #region Update
         [HttpPut("Update-Course")]
         [Authorize]
-        public async Task<IActionResult> UpdateCourse([FromBody] UpdateCourses course)
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UpdateCourse([FromForm] UpdateCourses course)
         {
             var userId = _userManger.GetUserId(User);
             if (userId == null)
@@ -237,6 +238,34 @@ namespace Nexvara.WebAPI.Controllers
                 return Unauthorized();
             }
             var result = await _courseServices.GetListBatchAsync(dto);
+            return StatusCode((int)result.ResponseCode, result);
+        }
+
+        [HttpGet("Get-List-Draft-Course")]
+        [Authorize]
+        public async Task<IActionResult> GetListDraftCourse([FromQuery] PaginationRequestDto dto)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Unauthorized();
+            }
+            var result = await _courseServices.GetListCoursesFeaturesAsync(dto);
+            return StatusCode((int)result.ResponseCode, result);
+        }
+
+        [HttpGet("Get-List-Publish-Course")]
+        [Authorize]
+        public async Task<IActionResult> GetListPublistCourse([FromQuery] PaginationRequestDto dto)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Unauthorized();
+            }
+            var result = await _courseServices.GetListCoursesPublishAsync(dto);
             return StatusCode((int)result.ResponseCode, result);
         }
 

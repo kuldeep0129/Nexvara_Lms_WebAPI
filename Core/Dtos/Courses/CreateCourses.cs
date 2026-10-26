@@ -1,4 +1,7 @@
-﻿using System;
+﻿using CloudinaryDotNet.Actions;
+using Domain.Enums;
+using Microsoft.AspNetCore.Http;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -33,11 +36,12 @@ namespace Core.Dtos.Courses
         [MaxLength(50)]
         public string? Level { get; set; }
 
-        [MaxLength(500)]
-        public string? ImageUrl { get; set; }
+        public IFormFile? ImageUrl { get; set; }
 
         public bool IsPublished { get; set; } = false;
+        public CourseAccessType? AccessType { get; set; }
 
+        public decimal? Price { get; set; }
         public int SortOrder { get; set; } = 0;
         public bool IsFeatured { get; set; } = false;
 

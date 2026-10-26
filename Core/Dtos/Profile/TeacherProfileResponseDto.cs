@@ -11,6 +11,7 @@ namespace Core.Dtos.Profile
     public class TeacherProfileResponseDto
     {
         public int Id { get; set; }
+        public string? UserId { get; set; }
         public string? UserName { get; set; }
         public string? Email { get; set; }
         public string? MobileNo { get; set; }
@@ -21,6 +22,7 @@ namespace Core.Dtos.Profile
         public string ProfileUrl { get; set; }
 
         public decimal? ExperienceYears { get; set; }
+        public string? PassingYear { get; set; }
         public string? Bio { get; set; }
         public string? Specialization { get; set; }
         public bool IsActive { get; set; }

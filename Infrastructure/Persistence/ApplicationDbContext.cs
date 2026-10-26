@@ -46,6 +46,8 @@ namespace Infrastructure.Persistence
         public DbSet<ClassAttendance> ClassAttendances { get; set; }
         public DbSet<CourseVideos> CourseVideos { get; set; }
         public DbSet<VideoProgress> VideoProgresses { get; set; }
+        public DbSet<Enrollment> Enrollments { get; set; }
+        public DbSet<BatchSchedule> BatchSchedules { get; set; }
 
     }
 }

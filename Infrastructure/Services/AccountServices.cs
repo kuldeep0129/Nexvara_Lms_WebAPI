@@ -99,6 +99,7 @@ namespace Infrastructure.Services
                     confirmationUrl,
                     default
                 );
+              
 
                 response.Success = false;
                 response.ResponseCode = (int)APIResponseCodes.BadRequest;
@@ -106,6 +107,40 @@ namespace Infrastructure.Services
                     "Please verify your email. A new verification link has been sent to your email address.";
 
                 return response;
+            }
+
+            //check user Active 
+            var userRole = await _userManager.GetRolesAsync(user);
+
+            if (userRole == null || userRole.Count == 0)
+            {
+                response.Success = false;
+                response.ResponseCode = (int)APIResponseCodes.UnAuthrized;
+                response.Message = "User role is not assigned.";
+                return response;
+            }
+
+            if (userRole.Contains(RoleData.Student.ToString()))
+            {
+                var res = await _accountRepository.GetByIdStudentProfileAsync(user.Id);
+                if (res.IsActive == false)
+                {
+                    response.Success = false;
+                    response.ResponseCode = (int)APIResponseCodes.UnAuthrized;
+                    response.Message = "Please Contact Adminstration.";
+                    return response;
+                }
+            }
+            else if (userRole.Contains(RoleData.Trainer.ToString()))
+            {
+                var res = await _accountRepository.GetByIdTeacherProfileAsync(user.Id);
+                if (res.IsActive == false)
+                {
+                    response.Success = false;
+                    response.ResponseCode = (int)APIResponseCodes.UnAuthrized;
+                    response.Message = "Please Contact Adminstration.";
+                    return response;
+                }
             }
 
             //refereh token
@@ -447,7 +482,7 @@ namespace Infrastructure.Services
                 response.ResponseCode = (int)APIResponseCodes.UnAuthrized;
                 return response;
             }
-            var studentProfile = await _accountRepository.GetByIdStudentProfileAsync(userId);
+            var studentProfile = await _accountRepository.GetByIdStudentProfileAsync(profile.Id);
             if (studentProfile == null)
             {
                 response.Success = false;
@@ -499,7 +534,7 @@ namespace Infrastructure.Services
             }
 
             // Get existing profile
-            var studentProfile = await _accountRepository.GetByIdStudentProfileAsync(userId);
+            var studentProfile = await _accountRepository.GetByIdStudentProfileAsync(userId ?? profile.Id);
 
             if (studentProfile == null)
             {
@@ -635,7 +670,7 @@ namespace Infrastructure.Services
                 response.ResponseCode = (int)APIResponseCodes.UnAuthrized;
                 return response;
             }
-            var teacherProfile = await _accountRepository.GetByIdTeacherProfileAsync(userId);
+            var teacherProfile = await _accountRepository.GetByIdTeacherProfileAsync(profile.Id);
             if (teacherProfile == null)
             {
                 response.Success = false;
@@ -652,6 +687,7 @@ namespace Infrastructure.Services
             teacherProfile.Qualification = profile.Qualification;
             teacherProfile.ExperienceYears = profile.Experienceyear;
             teacherProfile.Bio = profile.bio;
+            teacherProfile.PassingYear = profile.PassingYear;
             teacherProfile.Specialization = profile.specialization;
             teacherProfile.UpdateAt = DateTime.Now;
             teacherProfile.UpdateBy = userId;
@@ -867,7 +903,15 @@ namespace Infrastructure.Services
             }
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
             var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
-            var resetUrl = $"{"_frontendSettings.BaseUrl"}/reset-password" + $"?userId={Uri.EscapeDataString(user.Id)}" + $"&token={Uri.EscapeDataString(encodedToken)}";
+            var frontendBaseUrl = _configuration["Frontend:BaseUrl"];
+
+            if (string.IsNullOrWhiteSpace(frontendBaseUrl))
+            {
+                throw new InvalidOperationException("Frontend:BaseUrl is not configured.");
+            }
+            var resetUrl = $"{frontendBaseUrl}/reset-password" +
+                           $"?userId={Uri.EscapeDataString(user.Id)}" +
+                           $"&token={Uri.EscapeDataString(encodedToken)}";
             await _emailServices.SendPasswordResetAsync(user.Email!, user.UserName ?? user.Email!, resetUrl);
 
             response.Success = true;
@@ -951,6 +995,83 @@ namespace Infrastructure.Services
                 default:
                     throw new Exception("Invalid role.");
             }
+        }
+
+        public async Task<ResponseDto<object>> ChangePasswordAsync(ChangePasswordDto dto, string userId)
+        {
+            var response = new ResponseDto<object>();
+
+            if (dto == null)
+            {
+                response.Success = false;
+                response.Message = SystemMessage.RequestBodyNull;
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                return response;
+            }
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                response.Success = false;
+                response.Message = SystemMessage.UnAuthorized;
+                response.ResponseCode = (int)APIResponseCodes.UnAuthrized;
+                return response;
+            }
+
+            if (string.IsNullOrWhiteSpace(dto.CurrentPassword) || string.IsNullOrWhiteSpace(dto.NewPassword) ||  string.IsNullOrWhiteSpace(dto.ConfirmPassword))
+            {
+                response.Success = false;
+                response.Message = SystemMessage.AllPasswordFieldRequired;
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                return response;
+            }
+
+            if (dto.NewPassword != dto.ConfirmPassword)
+            {
+                response.Success = false;
+                response.Message = SystemMessage.DoNotMatchConfirmPassword;
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                return response;
+            }
+
+            if (dto.CurrentPassword == dto.NewPassword)
+            {
+                response.Success = false;
+                response.Message = SystemMessage.DifferntCurrentPassword;
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                return response;
+            }
+
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null)
+            {
+                response.Success = false;
+                response.Message = SystemMessage.RecordNotFound;
+                response.ResponseCode = (int)APIResponseCodes.NotFound;
+                return response;
+            }
+
+            var result = await _userManager.ChangePasswordAsync(  user,  dto.CurrentPassword,  dto.NewPassword
+            );
+
+            if (!result.Succeeded)
+            {
+                response.Success = false;
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
+
+                response.Message = string.Join(
+                    ", ",
+                    result.Errors.Select(x => x.Description)
+                );
+
+                return response;
+            }
+
+            response.Success = true;
+            response.ResponseCode = (int)APIResponseCodes.OK;
+            response.Message = SystemMessage.PasswordChangedSuccess;
+
+            return response;
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using Core.Dtos.Common;
+﻿using Core.Dtos.Batch;
+using Core.Dtos.Common;
 using Core.Dtos.Courses;
 using Core.Interface.Services;
 using Domain.Entities;
@@ -37,7 +38,15 @@ namespace Nexvara.WebAPI.Controllers
 
         }
 
-
+        [HttpPost("Create-AssignBatch/{batchId:int}/teachers")]
+        public async Task<IActionResult> CreateAssignTeacher(int batchId, [FromBody] CreateBatchTeacherDto dto)
+        {
+            var userId = _userManger.GetUserId(User);
+            if (string.IsNullOrWhiteSpace(userId))
+                return Unauthorized();
+            var response = await _teacherServices.AssignTeacherAsync(batchId, dto, userId);
+            return StatusCode(response.ResponseCode, response);
+        }
         #endregion
 
 
@@ -56,6 +65,27 @@ namespace Nexvara.WebAPI.Controllers
 
         }
 
+
+        [HttpPut("Update-BatchTeacher/{batchId:int}/teachers/{teacherId}")]
+        public async Task<IActionResult> UpdateTeacherAssignment(int batchId, string teacherId, [FromBody] UpdateBatchTeacherDto dto)
+        {
+            var userId = _userManger.GetUserId(User);
+            if (string.IsNullOrWhiteSpace(userId))
+                return Unauthorized();
+            var response = await _teacherServices.UpdateTeacherAssignmentAsync(batchId, teacherId, dto, userId);
+            return StatusCode(response.ResponseCode, response);
+        }
+
+        [HttpPatch("Update-Batch/{batchId:int}/teachers/{teacherId}/primary")]
+        public async Task<IActionResult> UpdateTeacherPrimary(int batchId, string teacherId, [FromBody] UpdateBatchTeacherAssignStatusDto dto)
+        {
+            var userId = _userManger.GetUserId(User);
+
+            if (string.IsNullOrWhiteSpace(userId))
+                return Unauthorized();
+            var response = await _teacherServices.UpdateTeacherAssigmentPrimaryAsync(batchId, teacherId, dto, userId);
+            return StatusCode(response.ResponseCode, response);
+        }
         #endregion
 
 
@@ -74,6 +104,16 @@ namespace Nexvara.WebAPI.Controllers
 
         }
 
+        [HttpPatch("Update-BatchAssign/{batchId:int}/teachers/{teacherId}/status")]
+        public async Task<IActionResult> UpdateTeacherStatus(int batchId, string teacherId)
+        {
+            var userId = _userManger.GetUserId(User);
+
+            if (string.IsNullOrWhiteSpace(userId))
+                return Unauthorized();
+            var response = await _teacherServices.UpdateTeacherAssigmentStatusAsync(batchId, teacherId, userId);
+            return StatusCode(response.ResponseCode, response);
+        }
         #endregion
 
 
@@ -106,6 +146,41 @@ namespace Nexvara.WebAPI.Controllers
             return StatusCode((int)result.ResponseCode, result);
         }
 
+        [HttpGet("Get-List-BatchTeacher-Assign-Admin")]
+        [Authorize]
+        public async Task<IActionResult> GetListAdminTeacherAssignAsync([FromQuery] AdminTeacherRequestVm dto)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Unauthorized();
+            }
+            var result = await _teacherServices.GetListAdminTeacherAssignAsync(dto);
+            return StatusCode((int)result.ResponseCode, result);
+        }
+
+
+
+        [HttpGet("Get-List-Teacher-IdName")]
+        [Authorize]
+        public async Task<IActionResult> GetListTeacherIdName()
+        {
+            var result = await _teacherServices.GetListTeacherIdNameAsync();
+            return StatusCode((int)result.ResponseCode, result);
+        }
+
+
+
+        [HttpGet("Get-List-Batch/{batchId:int}/teachers")]
+        public async Task<IActionResult> GetBatchTeachers(int batchId)
+        {
+            var userId = _userManger.GetUserId(User);
+            if (string.IsNullOrWhiteSpace(userId))
+                return Unauthorized();
+            var response = await _teacherServices.GetBatchTeachersAsync(batchId);
+            return StatusCode(response.ResponseCode, response);
+        }
         #endregion
 
     }

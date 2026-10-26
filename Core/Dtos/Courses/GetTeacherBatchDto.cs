@@ -15,7 +15,7 @@ namespace Core.Dtos.Courses
         public string? TeacherId { get; set; }
         public string TeacherName { get; set; }
         public bool IsPrimary { get; set; }
-        public DateOnly AssignedAt { get; set; }
+        public DateTime? AssignedAt { get; set; }
         public bool IsActive { get; set; }
     }
 }

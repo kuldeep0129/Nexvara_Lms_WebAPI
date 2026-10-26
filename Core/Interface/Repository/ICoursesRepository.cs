@@ -20,6 +20,8 @@ namespace Core.Interface.Repository
         Task<GetCoursesDto?> GetByIdCoursesAsync(int Id);
         Task<PageResultDto<GetCoursesDto>?> GetListCourseAsync(int pageNumber, int pageSize);
         Task<Course?> UpdateCourseAsync(int Id);
+        Task<PageResultDto<GetCoursesDto>> GetListCourseFeatureAsync(int pageNumber,int pageSize);
+        Task<PageResultDto<GetCoursesDto>> GetListCoursePublishAsync(int pageNumber,int pageSize);
 
         //Course Setting
         Task CreateCourseSettingAsync(CourseSettings course);

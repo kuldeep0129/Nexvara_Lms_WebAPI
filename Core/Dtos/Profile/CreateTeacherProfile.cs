@@ -18,6 +18,7 @@ namespace Core.Dtos.Profile
         public decimal? Experienceyear { get; set; }
         public string? bio { get; set; }
         public string? specialization { get; set; }
+        public string? PassingYear { get; set; }
         public int? Passingyear { get; set; }
     }
 }

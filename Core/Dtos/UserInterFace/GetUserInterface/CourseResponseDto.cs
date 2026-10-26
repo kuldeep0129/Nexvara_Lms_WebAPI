@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Domain.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -21,6 +22,9 @@ namespace Core.Dtos.UserInterFace.GetUserInterface
         public string? Icon { get; set;  }
         public string? color { get; set;  }
         public string? SoftColor { get; set;  }
+        public string? AccessType { get; set; }
+
+        public decimal? Price { get; set; }
         public string? Demand { get; set;  }
         public string LastProjectIcon {  get; set; }
         public string LastProjectName{  get; set; }

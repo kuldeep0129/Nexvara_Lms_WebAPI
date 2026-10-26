@@ -1,4 +1,5 @@
 ﻿using Domain.Entities.Common;
+using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -42,6 +43,9 @@ namespace Domain.Entities.UserInterface
 
         public bool IsPublished { get; set; } = false;
 
+        public string? AccessType { get; set; }
+
+        public decimal? Price { get; set; }
         public int SortOrder { get; set; } = 0;
         public bool IsFeatured { get; set; } = false;
     }

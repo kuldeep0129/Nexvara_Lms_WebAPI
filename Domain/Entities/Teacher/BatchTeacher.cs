@@ -23,7 +23,10 @@ namespace Domain.Entities.Teacher
         public ApplicationUser? user { get; set; }
 
         public bool IsPrimary { get; set; }
-        public DateOnly AssignedAt {  get; set; }
+        public DateTime? AssignedAt {  get; set; }
+        public string? AssignedBy {  get; set; }
+        public DateTime? RemovedAt {  get; set; }
+        public string? RemovedBy {  get; set; }
 
 
     }

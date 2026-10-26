@@ -223,5 +223,38 @@ namespace Nexvara.WebAPI.Controllers
             var result = await _accountServices.GetCommonProfileDto(userId);
             return StatusCode((int)result.ResponseCode, result);
         }
+
+        [HttpPost("Forgot-Password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
+        {
+            var result = await _accountServices.ForgotPasswordAsync(dto);
+
+            return StatusCode((int)result.ResponseCode, result);
+        }
+
+        [HttpPost("Reset-Password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
+        {
+            var result = await _accountServices.ResetPasswordAsync(dto);
+
+            return StatusCode((int)result.ResponseCode, result);
+        }
+
+        [HttpPost("Change-Password")]
+        [Authorize]
+        public async Task<IActionResult> ChangePassword( [FromBody] ChangePasswordDto dto)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Unauthorized();
+            }
+
+            var result = await _accountServices.ChangePasswordAsync(  dto,userId
+            );
+
+            return StatusCode( (int)result.ResponseCode,  result  );
+        }
     }
 }

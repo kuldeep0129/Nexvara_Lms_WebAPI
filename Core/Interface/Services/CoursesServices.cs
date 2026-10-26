@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Core.Interface.Services
 {
@@ -52,7 +53,6 @@ namespace Core.Interface.Services
             {
                 CourseId = dto.CourseId,
                 Name = dto.Name,
-                BatchCode = dto.BatchCode,
                 StartDate = dto.StartDate,
                 EndDate = dto.EndDate,
                 Capacity = dto.Capacity,
@@ -90,6 +90,13 @@ namespace Core.Interface.Services
             try
             {
                 var data = _mapper.Map<Course>(course);
+                if (course.ImageUrl != null && course.ImageUrl.Length > 0)
+                {
+                    var uploadResult = await _uploadServices.UploadCloubinaryAsync(course.ImageUrl, "Admin/Course", default);
+                    data.ImageUrl = uploadResult.Url;
+                }
+                data.AccessType = course.AccessType.ToString();
+                data.Price = course.Price;
                 data.IsActive = true;
                 data.CreateAt = DateTime.UtcNow;
                 data.CreateBy = userId;
@@ -248,6 +255,24 @@ namespace Core.Interface.Services
             return response;
         }
 
+        public async Task<ResponseDto<object>> GetListCoursesFeaturesAsync(PaginationRequestDto dto)
+        {
+            var response = new ResponseDto<object>();
+            if (dto == null)
+            {
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                response.Success = false;
+                response.Message = SystemMessage.RequestBodyNull;
+                return response;
+            }
+            var res = await _reposiotry.GetListCourseFeatureAsync(dto.PageNumber, dto.PageSize);
+            response.ResponseCode = (int)APIResponseCodes.OK;
+            response.Success = true;
+            response.Data = res;
+            response.Message = SystemMessage.RecordFetch;
+            return response;
+        }
+
         public async Task<ResponseDto<object>> GetListCoursesModuleAsync(PaginationRequestDto dto)
         {
             var response = new ResponseDto<object>();
@@ -259,6 +284,24 @@ namespace Core.Interface.Services
                 return response;
             }
             var res = await _reposiotry.GetListCourseModuleAsync(dto.PageNumber, dto.PageSize);
+            response.ResponseCode = (int)APIResponseCodes.OK;
+            response.Success = true;
+            response.Data = res;
+            response.Message = SystemMessage.RecordFetch;
+            return response;
+        }
+
+        public async Task<ResponseDto<object>> GetListCoursesPublishAsync(PaginationRequestDto dto)
+        {
+            var response = new ResponseDto<object>();
+            if (dto == null)
+            {
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                response.Success = false;
+                response.Message = SystemMessage.RequestBodyNull;
+                return response;
+            }
+            var res = await _reposiotry.GetListCoursePublishAsync(dto.PageNumber, dto.PageSize);
             response.ResponseCode = (int)APIResponseCodes.OK;
             response.Success = true;
             response.Data = res;
@@ -330,6 +373,20 @@ namespace Core.Interface.Services
                     return response;
                 }
                 _mapper.Map(course, resCourse);
+                // New Course 
+                if (course.ImageUrl != null && course.ImageUrl.Length > 0)
+                {
+                    if (!string.IsNullOrWhiteSpace(resCourse.ImageUrl))
+                    {
+                        await _uploadServices.DeleteCloubinaryAsync(resCourse.ImageUrl);
+                    }
+
+                    // Upload new image
+                    var uploadResult = await _uploadServices.UploadCloubinaryAsync(course.ImageUrl, "Admin/Course", default);
+                    resCourse.ImageUrl = uploadResult.Url;
+                }
+                resCourse.AccessType = course.AccessType.ToString();
+                resCourse.Price = course.Price;
                 resCourse.UpdateAt = DateTime.Now;
                 resCourse.UpdateBy = userId;
 

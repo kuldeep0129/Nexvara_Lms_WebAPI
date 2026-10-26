@@ -49,6 +49,38 @@ namespace Domain.common
         public const string RecordCreate = "Record Create Successfull.";
         public const string RecordUpdate = "Record Update Successfull.";
         public const string RecordFetch = "Record Fetch Successfull.";
+        public const string InvalidCourse = "Invalid course.";
+        public const string BatchNameIsRequired = "Batch name is required.";
+        public const string PasswordChangedSuccess = "Password changed successfully";
+        public const string AllPasswordFieldRequired = "All password fields are required.";
+        public const string DifferntCurrentPassword = "New password must be different from current password.";
+        public const string DoNotMatchConfirmPassword = "New password and confirm password do not match.";
         public const string RecordStatusChange = "Record Status  Changed Successfull.";
+        public const string InvalidEndDate = "End date cannot be earlier than start date.";
+        public const string InvalidCapacity = "Capacity must be greater than zero.";
+        public const string BatchNameAlreadyExits = "Batch with this name already exists for this course.";
+        public const string BatchCodeAlreadyExits = "Batch code already exists.";
+        public const string BatchNotFound="Batch not found.";
+        public const string CourseNotFound="Course not found.";
+        public const string InvalidBatchStatus= "Invalid batch status.";
+        public const string CannotBeChangeCompleteStatus= "Completed batch status cannot be changed.";
+        public const string CannotBeChangeCancelStatus= "Cancelled batch status cannot be changed.";
+        public const string CannotBePublishCancelBatch= "Cancelled batch cannot be published.";
+        public const string CannotBePublishCompleteBatch= "Completed batch cannot be published.";
+        public const string BatchSucessfullPublish= "Batch published successfully.";
+        public const string BatchUnSucessfullPublish= "Batch unpublished successfully";
+        public const string BatchAlreadyyyArchived = "Batch is already archived.";
+        public const string ActiveBatchCannotBeArchived = "Active batch cannot be archived. Complete or cancel the batch first.";
+        public const string InvalidScheduledata = "Invalid schedule data.";
+        public const string InvalidEndTime = "End time must be greater than start time.";
+        public const string ScheduleAlreadyExistsBranch = "This schedule already exists for this batch.";
+        public const string ScheduleNotFoundThisBatch = "Schedule not found for this batch.";
+        public const string ScheduleSameDayAlreadyExits = "A schedule with the same day and time already exists";
+        public const string TeacherIsRequired = "Teacher is required.";
+        public const string TeacherAlreadyHasPrimary = "This batch already has a primary teacher.";
+        public const string TeacherAssignedNotFound = "Teacher assignment not found.";
+        public const string ThisBatchAlreadyHoldPrimaryTeacher = "This batch already has a primary teacher.";
+        public const string TeacherIsAlreadyAssignedThisBatch = "Teacher is already assigned to this batch.";
+
     }
 }

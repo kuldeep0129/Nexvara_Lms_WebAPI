@@ -70,6 +70,8 @@ namespace Core.Mapping
             CreateMap<CreateCourseDto, Course>()
            .ForMember(dest => dest.Id,
                opt => opt.Ignore())
+           .ForMember(dest => dest.AccessType,
+               opt => opt.Ignore())
            .ForMember(dest => dest.ImageUrl,
                opt => opt.Ignore())
            .ForMember(dest => dest.IsPublished,
@@ -385,7 +387,9 @@ namespace Core.Mapping
             #region Course
             //create Course
             CreateMap<CreateCourses, Course>()
-           .ForMember(dest => dest.Id, opt => opt.Ignore());
+           .ForMember(dest => dest.Id, opt => opt.Ignore())
+           .ForMember(dest => dest.ImageUrl, opt => opt.Ignore());
+
             CreateMap<CreateCourses, CourseSettings>()
            .ForMember(dest => dest.Id, opt => opt.Ignore())
            .ForMember(dest => dest.CourseId, opt => opt.Ignore())

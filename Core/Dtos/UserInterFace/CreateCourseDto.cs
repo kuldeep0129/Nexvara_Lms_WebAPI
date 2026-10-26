@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Domain.Enums;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -32,7 +33,10 @@ namespace Core.Dtos.UserInterFace
         public string? Level { get; set; }
         public string? Demand { get; set; }
         public string? Star { get; set; }
+        public CourseAccessType AccessType { get; set; }
 
+
+        public decimal? Price { get; set; }
         public IFormFile? ImageUrl { get; set; }
         public CreateCourseSettings setting { get; set; }
         public CreateCourseLastProject lastProject { get; set; }
