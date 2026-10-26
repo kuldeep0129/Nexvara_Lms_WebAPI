@@ -55,7 +55,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("ReactPolicy", policy =>
     {
         policy
-            .WithOrigins("http://localhost:5173", "http://localhost:3000")
+            .WithOrigins("http://localhost:5173", "http://localhost:3000", "https://nexvara-technology.onrender.com/")
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -175,7 +175,11 @@ await SeederData.SeedAsync(app.Services);
 //if (app.Environment.IsDevelopment())
 //{
     app.UseSwagger();
-    app.UseSwaggerUI();
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Nexvara Web API v1");
+    options.RoutePrefix = "swagger";
+});
 //}
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
