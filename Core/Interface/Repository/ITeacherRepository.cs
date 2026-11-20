@@ -2,6 +2,7 @@
 using Core.Dtos.Batch;
 using Core.Dtos.Common;
 using Core.Dtos.Courses;
+using Core.Dtos.Teacher.Batch;
 using Domain.Entities;
 using Domain.Entities.Teacher;
 using Domain.Enums;
@@ -15,7 +16,7 @@ namespace Core.Interface.Repository
 {
     public interface ITeacherRepository
     {
-
+        #region Common
         //common
         Task<List<GetListTeacherIdNameDto>> GetListTeacherIdNameAsync();
 
@@ -42,7 +43,10 @@ namespace Core.Interface.Repository
         Task<BatchTeacher?> GetByBatchAndTeacherIdAsync(int batchId, string teacherId);
         Task<bool> PrimaryTeacherExistsAsync( int batchId, string teacherId);
         Task<PageResultDto<GetAdminTeacherAssignDto>> GetListAdminTeacherAssignAsync(int pageNumber,int pageSize, AdminTeacherAssingStatus status );
+        #endregion
 
+        Task<PageResultDto<GetActiveTeacherBatchDto>> GetMyBatchesAsync( string teacherId,  PaginationRequestDto pagination, TeacherBatchFilterDto filter);
+        Task<GetTeacherBatchOverviewDto> GetTeacherBatchOverViewAsync(int batchId ,string teacherId);
 
 
     }

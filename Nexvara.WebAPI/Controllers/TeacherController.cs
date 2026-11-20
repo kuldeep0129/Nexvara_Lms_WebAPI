@@ -1,6 +1,7 @@
 ﻿using Core.Dtos.Batch;
 using Core.Dtos.Common;
 using Core.Dtos.Courses;
+using Core.Dtos.Teacher.Batch;
 using Core.Interface.Services;
 using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
@@ -179,6 +180,24 @@ namespace Nexvara.WebAPI.Controllers
             if (string.IsNullOrWhiteSpace(userId))
                 return Unauthorized();
             var response = await _teacherServices.GetBatchTeachersAsync(batchId);
+            return StatusCode(response.ResponseCode, response);
+        }
+
+
+        [HttpGet("Get-My-Active-Batches")]
+        public async Task<IActionResult> GetMyActiveBatches([FromQuery] PaginationRequestDto pagination, [FromQuery] TeacherBatchFilterDto filter)
+        {
+            var userId = _userManger.GetUserId(User);
+            if (string.IsNullOrWhiteSpace(userId))
+                return Unauthorized();
+            var response = await _teacherServices.GetMyBatchesAsync(pagination, filter);
+            return StatusCode(response.ResponseCode, response);
+        }
+
+        [HttpGet("Get-Batch-Overview/{batchId:int}")]
+        public async Task<IActionResult> GetBatchOverview(int batchId)
+        {
+            var response = await _teacherServices.GetTeacherBatchOverViewAsync(batchId);
             return StatusCode(response.ResponseCode, response);
         }
         #endregion

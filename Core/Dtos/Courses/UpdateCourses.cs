@@ -37,7 +37,7 @@ namespace Core.Dtos.Courses
 
         public IFormFile? ImageUrl { get; set; }
         public CourseAccessType? AccessType { get; set; }
-
+        public ScheduleClassType? Mode { get; set; }
         public decimal? Price { get; set; }
 
         public bool IsPublished { get; set; } = false;

@@ -22,7 +22,8 @@ namespace Domain.Entities.Student
         public ApplicationUser? user { get; set; }
 
         public DateTime JoinedAt { get; set; }
-        public DateTime LeftAt { get; set; }
-        public DateTime DurationInSeconds { get; set; }
+        public DateTime? LeftAt { get; set; }
+        public string? Status { get; set; }
+        public int DurationInSeconds { get; set; }
     }
 }

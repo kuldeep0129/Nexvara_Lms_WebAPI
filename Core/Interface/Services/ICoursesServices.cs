@@ -32,5 +32,26 @@ namespace Core.Interface.Services
         Task<ResponseDto<object>> UpdateStatusBatchAsync(int Id, string userId);
         Task<ResponseDto<object>> GetByIdBatchAsync(int Id);
         Task<ResponseDto<object>> GetListBatchAsync(PaginationRequestDto dto);
+
+        //Course Syllabus
+        Task<ResponseDto<object>> CreateCourseSyllabusAsync(CreateCourseSyllabusDto dto, string userId);
+        Task<ResponseDto<object>> UpdateCourseSyllabusAsync(UpdateCourseSyllabusDto dto, string userId);
+        Task<ResponseDto<object>> UpdateCourseSyllabusStatusAsync(int Id, string userId);
+        Task<ResponseDto<object>> GetListCourseSyllabusAsync(PaginationRequestDto dto,int courseId);
+
+
+        //Course Material
+        Task<ResponseDto<object>> CreateCourseMaterialAsync(CreateCourseMaterialsDto dto, string userId);
+        Task<ResponseDto<object>> UpdateCourseMaterialAsync(UpdateCourseMaterialDto dto, string userId);
+        Task<ResponseDto<object>> UpdateCourseMaterialStatusAsync(int Id, string userId);
+        Task<ResponseDto<object>> UpdateCourseMaterialPublishAsync(int Id, string userId);
+        Task<ResponseDto<object>> GetByIdCourseMaterialAsync(int Id);
+
+
+        //For Admin and Teacher Manage Course Batch
+
+
+        Task<ResponseDto<GetCourseCurriculumGroupDto>>  GetCourseCurriculumAsync(int courseId);
+        Task<ResponseDto<object>>  GetByIdCourseSyllabusAsync(int id);
     }
 }

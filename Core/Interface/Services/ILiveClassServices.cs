@@ -31,7 +31,7 @@ namespace Core.Interface.Services
         Task<ResponseDto<object>> UpdateCourseVideoAsync(UpdateCourseVideosDto dto, string userId);
         Task<ResponseDto<object>> UpdateStatusCourseVideoAsync(int Id, string userId);
         Task<ResponseDto<object>> GetByIdCourseVideoAsync(int Id);
-        Task<ResponseDto<object>> GetListCourseVideoAsync(PaginationRequestDto dto);
+        Task<ResponseDto<object>> GetListCourseVideoAsync(PaginationRequestDto dto,int batchId);
 
 
 
@@ -41,5 +41,13 @@ namespace Core.Interface.Services
         Task<ResponseDto<object>> UpdateStatusVideoProgressAsync(int Id, string userId);
         Task<ResponseDto<object>> GetByIdVideoProgressAsync(int Id);
         Task<ResponseDto<object>> GetListVideoProgressAsync(PaginationRequestDto dto);
+        Task<ResponseDto<object>> GetStudentCourseVideosAsync(int batchId, string studentId);
+
+        //video progressanges
+        Task<Guid?> StartSessionAsync(  string studentId, int videoId);
+        Task<bool> SaveProgressAsync(  string studentId, SaveVideoProgressDto request);
+        Task<VideoProgressResponseDto?> GetProgressAsync(  string studentId, int videoId);
+        Task<VideoProgressResponseDto?> GetLastWatchedAsync( string studentId);
+        Task<bool> EndSessionAsync(  string studentId, Guid sessionId, string reason);
     }
 }

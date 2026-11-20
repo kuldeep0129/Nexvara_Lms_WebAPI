@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Domain.Enums;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -18,6 +19,7 @@ namespace Core.Dtos.Courses
         public string? Description { get; set; }
         public string? Duration { get; set; }
         public string? Demand { get; set; }
+        public string? Mode { get; set; }
         public string? Star { get; set; }
         public string? Level { get; set; }
         public string? ImageUrl { get; set; }
@@ -25,6 +27,8 @@ namespace Core.Dtos.Courses
         public int SortOrder { get; set; } 
         public bool IsFeatured { get; set; }
         public string? Icon { get; set; }
+        public string? CourseType { get; set; }
+        public decimal? Price { get; set; }
         public string? ColorCode { get; set; }
         public string? SoftColorCode { get; set; }
         public bool IsActive { get; set; }

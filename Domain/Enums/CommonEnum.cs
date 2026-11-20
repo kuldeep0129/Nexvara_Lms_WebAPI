@@ -43,6 +43,15 @@ namespace Domain.Enums
         Offline = 2,
         Recorded =3
     }
+    public enum PaymentStatus
+    {
+        Success = 1,
+        Failed = 2,
+        Refund =3,
+        Free = 4,
+        Reject =5,
+        Pending=6
+    }
     public enum AdminTeacherAssingStatus
     {
         All = 1,

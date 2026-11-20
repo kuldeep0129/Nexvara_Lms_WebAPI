@@ -33,7 +33,7 @@ namespace Core.Interface.Repository
         Task CreateCourseVideosAsync(CourseVideos entity);
         Task<CourseVideos?> GetByIdCourseVideosUpdateAsync(int Id);
         Task<GetCourseVideoDto?> GetByIdCourseVideosAsync(int Id);
-        Task<PageResultDto<GetCourseVideoDto>?> GetListCourseVideosAsync(int pageNumber, int pageSize);
+        Task<PageResultDto<GetCourseVideoDto>?> GetListCourseVideosAsync(int pageNumber, int pageSize, int? batchId);
         Task<CourseVideos?> UpdateCourseVideosAsync(int Id);
 
         //VideoProgress 
@@ -42,5 +42,17 @@ namespace Core.Interface.Repository
         Task<GetVideoProgressDto?> GetByIdVideoProgressAsync(int Id);
         Task<PageResultDto<GetVideoProgressDto>?> GetListVideoProgressAsync(int pageNumber, int pageSize);
         Task<VideoProgress?> UpdateVideoProgressAsync(int Id);
+        Task<GetStudentCourseVideoDto> GetStudentCourseVideosAsync( int batchId, string studentId);
+
+        //Video Progress Manage
+        Task<VideoWatchSession> StartSessionAsync(  string studentId, int videoId);
+
+        Task<bool> SaveProgressAsync(string studentId, SaveVideoProgressDto request);
+
+        Task<VideoProgressResponseDto?> GetProgressAsync( string studentId, int videoId);
+
+        Task<VideoProgressResponseDto?> GetLastWatchedAsync(   string studentId);
+
+        Task<bool> EndSessionAsync( string studentId, Guid sessionId, string reason);
     }
 }

@@ -22,6 +22,7 @@ namespace Core.Interface.Repository
         Task<Course?> UpdateCourseAsync(int Id);
         Task<PageResultDto<GetCoursesDto>> GetListCourseFeatureAsync(int pageNumber,int pageSize);
         Task<PageResultDto<GetCoursesDto>> GetListCoursePublishAsync(int pageNumber,int pageSize);
+        Task<PageResultDto<GetCourseSyllabusDto>> GetListCourseSyllabusAsync(int pageNumber,int pageSize, int courseId);
 
         //Course Setting
         Task CreateCourseSettingAsync(CourseSettings course);
@@ -41,6 +42,20 @@ namespace Core.Interface.Repository
         Task<PageResultDto<GetCourseBatchDto>?> GetListBatchAsync(int pageNumber, int pageSize);
         Task<Batch?> UpdateBatchAsync(int Id);
 
-       
+        //Course Syllabus 
+        Task CreateCourseSyllabusAsync(CourseSyllabus syllabus);
+        Task<CourseSyllabus> GetByIdCourseSyllabusAsync(int Id);
+        Task<bool> IsDisplayOrderExistsCourseSyllabusAsync(int Id, int displayOrder);
+
+        //Course Material 
+        Task CreateCourseMaterialAsync(CourseMaterials entity);
+        Task<CourseMaterials> GetByIdCourseMaterialAsync(int Id);
+
+
+        //For Admin and Teacher Manage Course Batch
+        Task<bool> CourseExistsAsync(int courseId);
+        Task<GetCourseCurriculumGroupDto?> GetCourseCurriculumAsync( int courseId);
+
+        Task<GetCourseSyllabusDto> GetCourseSyllabusAsync(int id);
     }
 }

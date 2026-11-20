@@ -13,10 +13,6 @@ namespace Core.Dtos.Batch
         [Required]
         public DayOfWeek DayOfWeek { get; set; }
 
-        [Required]
-        public DateTime StartDate { get; set; }
-
-        public DateTime? EndDate { get; set; }
 
         [Required]
         public TimeSpan StartTime { get; set; }

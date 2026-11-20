@@ -263,6 +263,62 @@ namespace Infrastructure.Migrations
                     b.ToTable("LiveClasses");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Common.Payments", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal?>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreateAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreateBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("EnrollmentId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PaymentGateway")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PaymentStatus")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ProviderEventId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StudentId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("TransactionId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdateAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdateBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EnrollmentId");
+
+                    b.HasIndex("StudentId");
+
+                    b.ToTable("Payments");
+                });
+
             modelBuilder.Entity("Domain.Entities.Organization", b =>
                 {
                     b.Property<int>("Id")
@@ -439,6 +495,81 @@ namespace Infrastructure.Migrations
                     b.ToTable("RefreshTokens");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Student.BatchClassSession", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("BatchId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("BatchScheduleId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CourseModuleId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreateAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreateBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<TimeSpan?>("EndTime")
+                        .HasColumnType("time");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsReschedule")
+                        .HasColumnType("bit");
+
+                    b.Property<TimeSpan?>("OriginalEndTime")
+                        .HasColumnType("time");
+
+                    b.Property<DateTime?>("OriginalSessionDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<TimeSpan?>("OriginalStartTime")
+                        .HasColumnType("time");
+
+                    b.Property<string>("RescheduleReason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("SessionDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<TimeSpan>("StartTime")
+                        .HasColumnType("time");
+
+                    b.Property<string>("Status")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TeacherId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("UpdateAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdateBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BatchId");
+
+                    b.HasIndex("BatchScheduleId");
+
+                    b.HasIndex("CourseModuleId");
+
+                    b.HasIndex("TeacherId");
+
+                    b.ToTable("BatchClassSessions");
+                });
+
             modelBuilder.Entity("Domain.Entities.Student.BatchSchedule", b =>
                 {
                     b.Property<int>("Id")
@@ -551,8 +682,8 @@ namespace Infrastructure.Migrations
                     b.Property<string>("CreateBy")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime>("DurationInSeconds")
-                        .HasColumnType("datetime2");
+                    b.Property<int>("DurationInSeconds")
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -560,11 +691,14 @@ namespace Infrastructure.Migrations
                     b.Property<DateTime>("JoinedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime>("LeftAt")
+                    b.Property<DateTime?>("LeftAt")
                         .HasColumnType("datetime2");
 
                     b.Property<int?>("LiveClassId")
                         .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("StudentId")
                         .HasColumnType("nvarchar(450)");
@@ -582,6 +716,70 @@ namespace Infrastructure.Migrations
                     b.HasIndex("StudentId");
 
                     b.ToTable("ClassAttendances");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Student.CourseMaterials", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("BatchId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CourseId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreateAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreateBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<long?>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("FileType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FileUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("ModuleId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdateAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdateBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UploadedBy")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BatchId");
+
+                    b.HasIndex("CourseId");
+
+                    b.HasIndex("ModuleId");
+
+                    b.HasIndex("UploadedBy");
+
+                    b.ToTable("CourseMaterials");
                 });
 
             modelBuilder.Entity("Domain.Entities.Student.CourseModule", b =>
@@ -627,6 +825,49 @@ namespace Infrastructure.Migrations
                     b.ToTable("CourseModules");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Student.CourseSyllabus", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("CourseId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreateAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreateBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdateAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdateBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseId");
+
+                    b.ToTable("CourseSyllabus");
+                });
+
             modelBuilder.Entity("Domain.Entities.Student.CourseVideos", b =>
                 {
                     b.Property<int>("Id")
@@ -650,11 +891,11 @@ namespace Infrastructure.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("DisplayOrder")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("DisplayOrder")
+                        .HasColumnType("int");
 
-                    b.Property<string>("DurationInSeconds")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("DurationInSeconds")
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -673,6 +914,14 @@ namespace Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("UpdateBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("VideoId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("VideoProvider")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("VideoUrl")
@@ -707,7 +956,7 @@ namespace Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<decimal?>("CompletionPercentage")
-                        .HasColumnType("decimal(18,2)");
+                        .HasColumnType("decimal(5,2)");
 
                     b.Property<int?>("CourseId")
                         .HasColumnType("int");
@@ -723,6 +972,9 @@ namespace Infrastructure.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
+
+                    b.Property<string>("PaymentStatus")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("StudentId")
                         .HasColumnType("nvarchar(450)");
@@ -824,10 +1076,19 @@ namespace Infrastructure.Migrations
                     b.Property<bool>("IsCompleted")
                         .HasColumnType("bit");
 
+                    b.Property<Guid?>("LastEventId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int?>("LastPositionSeconds")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("LastWatchedAt")
+                    b.Property<DateTime?>("LastSavedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("LastSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("LastWatchedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("StudentId")
@@ -852,6 +1113,104 @@ namespace Infrastructure.Migrations
                     b.HasIndex("VideoId");
 
                     b.ToTable("VideoProgresses");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Student.VideoProgressEvents", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<Guid?>("EventId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("EventType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NetworkStatus")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("OccurredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("PositionSeconds")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ReceivedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("SessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("StopReason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StudentId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int?>("VideoId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("WatchedSecondsDelta")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StudentId");
+
+                    b.HasIndex("VideoId");
+
+                    b.ToTable("VideoProgressEvents");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Student.VideoWatchSession", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("EndedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsPlaying")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastHeartbeatAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("LastPositionSeconds")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("SessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StopReason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StudentId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int?>("VideoId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StudentId");
+
+                    b.HasIndex("VideoId");
+
+                    b.ToTable("VideoWatchSessions");
                 });
 
             modelBuilder.Entity("Domain.Entities.Teacher.BatchTeacher", b =>
@@ -1135,6 +1494,10 @@ namespace Infrastructure.Migrations
                     b.Property<string>("Level")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Points")
                         .HasColumnType("nvarchar(max)");
@@ -1891,6 +2254,21 @@ namespace Infrastructure.Migrations
                     b.Navigation("module");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Common.Payments", b =>
+                {
+                    b.HasOne("Domain.Entities.Student.Enrollment", "enrollment")
+                        .WithMany()
+                        .HasForeignKey("EnrollmentId");
+
+                    b.HasOne("Domain.Entities.ApplicationUser", "user")
+                        .WithMany()
+                        .HasForeignKey("StudentId");
+
+                    b.Navigation("enrollment");
+
+                    b.Navigation("user");
+                });
+
             modelBuilder.Entity("Domain.Entities.Organization", b =>
                 {
                     b.HasOne("Domain.Entities.ApplicationUser", "applicationUser")
@@ -1907,6 +2285,33 @@ namespace Infrastructure.Migrations
                         .HasForeignKey("UserId");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Student.BatchClassSession", b =>
+                {
+                    b.HasOne("Domain.Entities.Batch", "batch")
+                        .WithMany()
+                        .HasForeignKey("BatchId");
+
+                    b.HasOne("Domain.Entities.Student.BatchSchedule", "BatchSchedule")
+                        .WithMany()
+                        .HasForeignKey("BatchScheduleId");
+
+                    b.HasOne("Domain.Entities.Student.CourseSyllabus", "courseModule")
+                        .WithMany()
+                        .HasForeignKey("CourseModuleId");
+
+                    b.HasOne("Domain.Entities.ApplicationUser", "Teacher")
+                        .WithMany()
+                        .HasForeignKey("TeacherId");
+
+                    b.Navigation("BatchSchedule");
+
+                    b.Navigation("Teacher");
+
+                    b.Navigation("batch");
+
+                    b.Navigation("courseModule");
                 });
 
             modelBuilder.Entity("Domain.Entities.Student.BatchSchedule", b =>
@@ -1948,7 +2353,43 @@ namespace Infrastructure.Migrations
                     b.Navigation("user");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Student.CourseMaterials", b =>
+                {
+                    b.HasOne("Domain.Entities.Batch", "batch")
+                        .WithMany()
+                        .HasForeignKey("BatchId");
+
+                    b.HasOne("Domain.Entities.UserInterface.Course", "course")
+                        .WithMany()
+                        .HasForeignKey("CourseId");
+
+                    b.HasOne("Domain.Entities.Student.CourseSyllabus", "module")
+                        .WithMany()
+                        .HasForeignKey("ModuleId");
+
+                    b.HasOne("Domain.Entities.ApplicationUser", "user")
+                        .WithMany()
+                        .HasForeignKey("UploadedBy");
+
+                    b.Navigation("batch");
+
+                    b.Navigation("course");
+
+                    b.Navigation("module");
+
+                    b.Navigation("user");
+                });
+
             modelBuilder.Entity("Domain.Entities.Student.CourseModule", b =>
+                {
+                    b.HasOne("Domain.Entities.UserInterface.Course", "course")
+                        .WithMany()
+                        .HasForeignKey("CourseId");
+
+                    b.Navigation("course");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Student.CourseSyllabus", b =>
                 {
                     b.HasOne("Domain.Entities.UserInterface.Course", "course")
                         .WithMany()
@@ -1967,7 +2408,7 @@ namespace Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("CourseId");
 
-                    b.HasOne("Domain.Entities.Student.CourseModule", "module")
+                    b.HasOne("Domain.Entities.Student.CourseSyllabus", "module")
                         .WithMany()
                         .HasForeignKey("ModuleId");
 
@@ -2021,6 +2462,36 @@ namespace Infrastructure.Migrations
                     b.Navigation("courseVideos");
 
                     b.Navigation("user");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Student.VideoProgressEvents", b =>
+                {
+                    b.HasOne("Domain.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("StudentId");
+
+                    b.HasOne("Domain.Entities.Student.CourseVideos", "video")
+                        .WithMany()
+                        .HasForeignKey("VideoId");
+
+                    b.Navigation("User");
+
+                    b.Navigation("video");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Student.VideoWatchSession", b =>
+                {
+                    b.HasOne("Domain.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("StudentId");
+
+                    b.HasOne("Domain.Entities.Student.CourseVideos", "video")
+                        .WithMany()
+                        .HasForeignKey("VideoId");
+
+                    b.Navigation("User");
+
+                    b.Navigation("video");
                 });
 
             modelBuilder.Entity("Domain.Entities.Teacher.BatchTeacher", b =>

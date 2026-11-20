@@ -7,6 +7,7 @@ using Domain.common;
 using Domain.Entities;
 using Domain.Entities.Student;
 using Domain.Enums;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -244,7 +245,7 @@ namespace Infrastructure.Services
             // Check Batch
             var batchExists = await _repository.BatchExistsAsync(batchId);
 
-            if (!batchExists)
+            if (batchExists == null)
             {
                 response.ResponseCode = (int)APIResponseCodes.NotFound;
                 response.Success = false;
@@ -258,16 +259,6 @@ namespace Infrastructure.Services
                 response.ResponseCode = (int)APIResponseCodes.BadRequest;
                 response.Success = false;
                 response.Message = SystemMessage.InvalidEndTime;
-                return response;
-            }
-
-            // Validate Date
-            if (dto.EndDate.HasValue &&
-                dto.EndDate.Value.Date < dto.StartDate.Date)
-            {
-                response.ResponseCode = (int)APIResponseCodes.BadRequest;
-                response.Success = false;
-                response.Message = SystemMessage.InvalidEndDate;
                 return response;
             }
 
@@ -288,9 +279,9 @@ namespace Infrastructure.Services
 
                 DayOfWeek = dto.DayOfWeek.ToString(),
 
-                StartDate = dto.StartDate,
+                StartDate = batchExists.StartDate,
 
-                EndDate = dto.EndDate,
+                EndDate = batchExists.EndDate,
 
                 StartTime = dto.StartTime,
 
@@ -308,14 +299,61 @@ namespace Infrastructure.Services
                 CreateBy = userId
             };
 
-            await _repository.CreateScheduleAsync(schedule);
+            await _unitOfWork.BeginTransactionAsync();
+            try
+            {
 
-            await _unitOfWork.SaveAsync();
+                await _repository.CreateScheduleAsync(schedule);
+                await _unitOfWork.SaveAsync();
+                var session = new List<BatchClassSession>();
+                var currentDate = Convert.ToDateTime(batchExists.StartDate);
+                var endDate = batchExists.EndDate;
+                while (currentDate <= endDate)
+                {
+                    if (currentDate.DayOfWeek == dto.DayOfWeek)
+                    {
+                        session.Add(new BatchClassSession
+                        {
+                            BatchId = batchId,
 
-            response.ResponseCode = (int)APIResponseCodes.Created;
-            response.Success = true;
-            response.Message = SystemMessage.RecordCreate;
-            return response;
+                            BatchScheduleId = schedule.Id,
+                            SessionDate = currentDate,
+
+                            StartTime = dto.StartTime,
+
+                            EndTime = dto.EndTime,
+
+                            Status = "Scheduled",
+
+                            IsReschedule = false,
+
+                            CreateAt = DateTime.Now,
+                            CreateBy = userId
+                        });
+                    }
+
+                    currentDate = currentDate.AddDays(1);
+                }
+                if (session.Count > 0)
+                {
+                    await _repository.CreateBatchClassSessionAsync(session);
+                    await _unitOfWork.SaveAsync();
+                }
+                await _unitOfWork.CommitTransactionAsync();
+                response.ResponseCode = (int)APIResponseCodes.Created;
+                response.Success = true;
+                response.Message = SystemMessage.RecordCreate;
+                return response;
+            }
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                response.ResponseCode = (int)APIResponseCodes.InternalServerError;
+                response.Success = false;
+                response.Message = ex.Message;
+                return response;
+            }
+
         }
 
         public async Task<ResponseDto<object>> GetBatchByIdAsync(int id)
@@ -399,7 +437,9 @@ namespace Infrastructure.Services
                 response.Message = SystemMessage.InvalidId;
                 return response;
             }
-            var res = await _repository.GetByIdBatchScheduleAsync(scheduleId,batchId);
+            var res = await _repository.GetByIdBatchScheduleAsync(scheduleId, batchId);
+            var session = await _repository.GetListByIdBatchClassSessionAsync(scheduleId, batchId);
+
             if (res == null)
             {
                 response.ResponseCode = (int)APIResponseCodes.BadRequest;
@@ -410,6 +450,14 @@ namespace Infrastructure.Services
             res.IsActive = !res.IsActive;
             res.UpdateAt = DateTime.Now;
             res.UpdateBy = userId;
+            var futureSession = session.Where(x => x.SessionDate >= DateTime.Now.Date).ToList();
+            foreach (var item in futureSession)
+            {
+                item.Status = "Cancelled";
+                item.UpdateAt = DateTime.Now;
+                item.UpdateBy = userId;
+                item.IsActive = false;
+            }
             await _unitOfWork.SaveAsync();
             response.ResponseCode = (int)APIResponseCodes.OK;
             response.Success = true;
@@ -467,7 +515,7 @@ namespace Infrastructure.Services
                 return response;
             }
             var batchExists = await _repository.BatchExistsAsync(batchId);
-            if (!batchExists)
+            if (batchExists == null)
             {
                 response.ResponseCode = (int)APIResponseCodes.NotFound;
                 response.Success = false;
@@ -660,10 +708,13 @@ namespace Infrastructure.Services
             return response;
         }
 
-        public async Task<ResponseDto<object>> UpdateScheduleAsync(int batchId, int scheduleId, UpdateBatchScheduleDto dto, string userId)
+        public async Task<ResponseDto<object>> UpdateScheduleAsync( int batchId,  int scheduleId, UpdateBatchScheduleDto dto,  string userId)
         {
-
             var response = new ResponseDto<object>();
+
+            // -----------------------------------------
+            // 1. Validate Ids
+            // -----------------------------------------
             if (batchId <= 0 || scheduleId <= 0)
             {
                 response.ResponseCode = (int)APIResponseCodes.BadRequest;
@@ -671,6 +722,10 @@ namespace Infrastructure.Services
                 response.Message = SystemMessage.InvalidId;
                 return response;
             }
+
+            // -----------------------------------------
+            // 2. Validate Request
+            // -----------------------------------------
             if (dto == null)
             {
                 response.ResponseCode = (int)APIResponseCodes.BadRequest;
@@ -678,15 +733,23 @@ namespace Infrastructure.Services
                 response.Message = SystemMessage.RequestBodyNull;
                 return response;
             }
-            var batchExists = await _repository.BatchExistsAsync(batchId);
 
-            if (!batchExists)
+            // -----------------------------------------
+            // 3. Get Batch
+            // -----------------------------------------
+            var batch = await _repository.BatchExistsAsync(batchId);
+
+            if (batch == null)
             {
                 response.ResponseCode = (int)APIResponseCodes.NotFound;
                 response.Success = false;
                 response.Message = SystemMessage.BatchNotFound;
                 return response;
             }
+
+            // -----------------------------------------
+            // 4. Get Schedule
+            // -----------------------------------------
             var schedule = await _repository.GetByIdBatchScheduleAsync(scheduleId);
 
             if (schedule == null || schedule.BatchId != batchId)
@@ -694,51 +757,209 @@ namespace Infrastructure.Services
                 response.ResponseCode = (int)APIResponseCodes.NotFound;
                 response.Success = false;
                 response.Message = SystemMessage.ScheduleNotFoundThisBatch;
-                return response;             
+                return response;
             }
+
+            // -----------------------------------------
+            // 5. Validate Time
+            // -----------------------------------------
             if (dto.EndTime <= dto.StartTime)
             {
-                response.ResponseCode = (int)APIResponseCodes.NotFound;
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
                 response.Success = false;
                 response.Message = SystemMessage.InvalidEndTime;
                 return response;
             }
 
-            if (dto.EndDate.HasValue && dto.EndDate.Value.Date < dto.StartDate.Date)
-            {
-                response.ResponseCode = (int)APIResponseCodes.NotFound;
-                response.Success = false;
-                response.Message = SystemMessage.InvalidEndDate;
-                return response;
-            }
-            var duplicateSchedule = await _repository.ScheduleExistsAsync( batchId, dto.DayOfWeek,   dto.StartTime, dto.EndTime, scheduleId);
+            // -----------------------------------------
+            // 6. Check Duplicate Schedule
+            // -----------------------------------------
+            var duplicateSchedule = await _repository.ScheduleExistsAsync(
+                batchId,
+                dto.DayOfWeek,
+                dto.StartTime,
+                dto.EndTime,
+                scheduleId);
+
             if (duplicateSchedule)
             {
-                response.ResponseCode = (int)APIResponseCodes.NotFound;
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
                 response.Success = false;
                 response.Message = SystemMessage.ScheduleSameDayAlreadyExits;
                 return response;
             }
-            schedule.DayOfWeek = dto.DayOfWeek.ToString();
-            schedule.StartDate = dto.StartDate;
-            schedule.EndDate = dto.EndDate;
-            schedule.StartTime = dto.StartTime;
-            schedule.EndTime = dto.EndTime;
-            schedule.ClassType = dto.ClassType.ToString();
-            schedule.MettingLink = string.IsNullOrWhiteSpace(dto.MeetingLink)
-                ? null
-                : dto.MeetingLink.Trim();
 
-            schedule.UpdateAt = DateTime.UtcNow;
-            schedule.UpdateBy = userId;
-            await _unitOfWork.SaveAsync();
-            response.ResponseCode = (int)APIResponseCodes.OK;
-            response.Success = true;
-            response.Message = SystemMessage.RecordUpdate;
-            return response;
+            // -----------------------------------------
+            // 7. Get OLD Schedule Values
+            //    Important: Do this BEFORE updating schedule
+            // -----------------------------------------
+            var oldDayOfWeek = Enum.Parse<DayOfWeek>(schedule.DayOfWeek);
+
+            var oldStartTime = schedule.StartTime;
+            var oldEndTime = schedule.EndTime;
+
+            var dayChanged = oldDayOfWeek != dto.DayOfWeek;
+
+            var timeChanged =
+                oldStartTime != dto.StartTime ||
+                oldEndTime != dto.EndTime;
+
+            var now = DateTime.Now;
+            var today = now.Date;
+
+            await _unitOfWork.BeginTransactionAsync();
+
+            try
+            {
+                // -----------------------------------------
+                // 8. Get Existing Sessions
+                // -----------------------------------------
+                var sessions =
+                    await _repository.GetListByIdBatchClassSessionAsync(
+                        scheduleId,
+                        batchId);
+
+                // -----------------------------------------
+                // 9. DAY CHANGED
+                // -----------------------------------------
+                if (dayChanged)
+                {
+                    // Cancel old future scheduled sessions
+                    foreach (var item in sessions)
+                    {
+                        if (item.SessionDate.Date >= today &&
+                            item.Status == "Scheduled")
+                        {
+                            item.Status = "Cancelled";
+                            item.UpdateAt = now;
+                            item.UpdateBy = userId;
+                        }
+                    }
+
+                    // Generate new sessions for new weekday
+                    var newSessions = new List<BatchClassSession>();
+
+                    var currentDate = Convert.ToDateTime(batch.StartDate);
+                    var endDate = Convert.ToDateTime(batch.EndDate);
+
+                    while (currentDate <= endDate)
+                    {
+                        if (currentDate >= today &&
+                            currentDate.DayOfWeek == dto.DayOfWeek)
+                        {
+                            newSessions.Add(new BatchClassSession
+                            {
+                                BatchId = batchId,
+
+                                BatchScheduleId = scheduleId,
+
+                                SessionDate = currentDate,
+
+                                StartTime = dto.StartTime,
+
+                                EndTime = dto.EndTime,
+
+                                Status = "Scheduled",
+
+                                IsReschedule = false,
+
+                                CreateAt = now,
+
+                                CreateBy = userId
+                            });
+                        }
+
+                        currentDate = currentDate.AddDays(1);
+                    }
+
+                    // Add new sessions
+                    if (newSessions.Count > 0)
+                    {
+                        await _repository.CreateBatchClassSessionAsync(
+                            newSessions);
+                    }
+                }
+
+                // -----------------------------------------
+                // 10. ONLY TIME CHANGED
+                // -----------------------------------------
+                else if (timeChanged)
+                {
+                    foreach (var item in sessions)
+                    {
+                        if (item.SessionDate.Date >= today &&
+                            item.Status == "Scheduled")
+                        {
+                            item.StartTime = dto.StartTime;
+                            item.EndTime = dto.EndTime;
+
+                            item.UpdateAt = now;
+                            item.UpdateBy = userId;
+                        }
+                    }
+                }
+
+                // -----------------------------------------
+                // 11. Update BatchSchedule
+                // -----------------------------------------
+                schedule.DayOfWeek = dto.DayOfWeek.ToString();
+
+                schedule.StartDate = batch.StartDate;
+
+                schedule.EndDate = batch.EndDate;
+
+                schedule.StartTime = dto.StartTime;
+
+                schedule.EndTime = dto.EndTime;
+
+                schedule.ClassType = dto.ClassType.ToString();
+
+                schedule.MettingLink =
+                    string.IsNullOrWhiteSpace(dto.MeetingLink)
+                        ? null
+                        : dto.MeetingLink.Trim();
+
+                schedule.UpdateAt = now;
+
+                schedule.UpdateBy = userId;
+
+                // -----------------------------------------
+                // 12. Save Everything
+                // -----------------------------------------
+                await _unitOfWork.SaveAsync();
+
+                // -----------------------------------------
+                // 13. Commit Transaction
+                // -----------------------------------------
+                await _unitOfWork.CommitTransactionAsync();
+
+                // -----------------------------------------
+                // 14. Success Response
+                // -----------------------------------------
+                response.ResponseCode = (int)APIResponseCodes.OK;
+                response.Success = true;
+                response.Message = SystemMessage.RecordUpdate;
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                // -----------------------------------------
+                // Rollback if anything fails
+                // -----------------------------------------
+                await _unitOfWork.RollbackTransactionAsync();
+
+                response.ResponseCode =
+                    (int)APIResponseCodes.InternalServerError;
+
+                response.Success = false;
+
+                response.Message = ex.Message;
+
+                return response;
+            }
         }
-
-        public async  Task<ResponseDto<object>> GetBatchScheduleListAsync(PaginationRequestDto pagination, BatchScheduleFilterDto filter)
+        public async Task<ResponseDto<object>> GetBatchScheduleListAsync(PaginationRequestDto pagination, BatchScheduleFilterDto filter)
         {
             var response = new ResponseDto<object>();
             if (pagination.PageNumber <= 0)
@@ -750,7 +971,7 @@ namespace Infrastructure.Services
             if (pagination.PageSize > 100)
                 pagination.PageSize = 100;
 
-            var result = await _repository.GetBatchScheduleListAsync( pagination, filter);
+            var result = await _repository.GetBatchScheduleListAsync(pagination, filter);
             response.Success = true;
             response.Message = SystemMessage.RecordFetch;
             response.ResponseCode = (int)APIResponseCodes.OK;

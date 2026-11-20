@@ -24,7 +24,11 @@ namespace Domain.Entities.Student
         public decimal? CompletionPercentage { get; set; }
         public int? LastPositionSeconds { get; set; }
         public bool IsCompleted { get; set; }
-        public DateTime LastWatchedAt { get; set; }
+        public DateTime? LastWatchedAt { get; set; }
+        public DateTime? LastSavedAt { get; set; }
+        public Guid? LastSessionId { get; set; }
+        
+        public Guid? LastEventId { get; set; }
 
 
     }

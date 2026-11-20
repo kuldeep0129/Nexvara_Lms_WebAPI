@@ -20,7 +20,7 @@ namespace Domain.Entities.Student
 
         public int? ModuleId { get; set; }
         [ForeignKey(nameof(ModuleId))]
-        public CourseModule? module { get; set; }
+        public CourseSyllabus? module { get; set; }
         public int? BatchId { get; set; }
         [ForeignKey(nameof(BatchId))]
         public Batch? batch { get; set; }
@@ -29,7 +29,9 @@ namespace Domain.Entities.Student
         public string? FileType { get; set; }
         public long? FileSize { get; set; }
         public bool IsPublished { get; set; }
-        public string UploadedBy { get; set; }
+        public string? UploadedBy { get; set; }
+        [ForeignKey(nameof(UploadedBy))]
+        public ApplicationUser? user { get; set; }
 
     }
 

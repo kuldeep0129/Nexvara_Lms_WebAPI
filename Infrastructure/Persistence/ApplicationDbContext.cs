@@ -35,6 +35,7 @@ namespace Infrastructure.Persistence
         public DbSet<ProgramSetting> ProgramSettings { get; set; }
         public DbSet<CourseLastProject> CourseLastProjects { get; set; }
         public DbSet<CourseSettings> CourseSettings { get; set; }
+        public DbSet<CourseSyllabus> CourseSyllabus { get; set; }
         public DbSet<Organization> Organizations { get; set; }
         public DbSet<StudentProfile> StudentProfiles { get; set; }
         public DbSet<TeacherProfiles> TeacherProfiles { get; set; }
@@ -45,9 +46,15 @@ namespace Infrastructure.Persistence
         public DbSet<LiveClasses> LiveClasses { get; set; }
         public DbSet<ClassAttendance> ClassAttendances { get; set; }
         public DbSet<CourseVideos> CourseVideos { get; set; }
+
         public DbSet<VideoProgress> VideoProgresses { get; set; }
+        public DbSet<VideoProgressEvents> VideoProgressEvents { get; set; }
+        public DbSet<VideoWatchSession> VideoWatchSessions { get; set; }
         public DbSet<Enrollment> Enrollments { get; set; }
         public DbSet<BatchSchedule> BatchSchedules { get; set; }
+        public DbSet<Payments> Payments { get; set; }
+        public DbSet<BatchClassSession> BatchClassSessions { get; set; }
+        public DbSet<CourseMaterials> CourseMaterials { get; set; }
 
     }
 }

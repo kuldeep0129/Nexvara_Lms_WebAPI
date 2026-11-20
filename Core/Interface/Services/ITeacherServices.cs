@@ -1,6 +1,7 @@
 ﻿using Core.Dtos.Batch;
 using Core.Dtos.Common;
 using Core.Dtos.Courses;
+using Core.Dtos.Teacher.Batch;
 using Domain.Enums;
 using System;
 using System.Collections.Generic;
@@ -32,5 +33,8 @@ namespace Core.Interface.Services
         Task<ResponseDto<object>> UpdateTeacherAssigmentPrimaryAsync( int batchId, string teacherId,UpdateBatchTeacherAssignStatusDto dto, string userId);
         Task<ResponseDto<object>> GetListAdminTeacherAssignAsync(AdminTeacherRequestVm vm);
 
+        Task<ResponseDto<object>> GetMyBatchesAsync( PaginationRequestDto pagination, TeacherBatchFilterDto filter);
+
+        Task<ResponseDto<object>> GetTeacherBatchOverViewAsync( int batchId);
     }
 }

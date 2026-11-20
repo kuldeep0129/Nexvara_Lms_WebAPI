@@ -388,6 +388,7 @@ namespace Core.Mapping
             //create Course
             CreateMap<CreateCourses, Course>()
            .ForMember(dest => dest.Id, opt => opt.Ignore())
+           .ForMember(dest => dest.Mode,opt => opt.Ignore() )
            .ForMember(dest => dest.ImageUrl, opt => opt.Ignore());
 
             CreateMap<CreateCourses, CourseSettings>()

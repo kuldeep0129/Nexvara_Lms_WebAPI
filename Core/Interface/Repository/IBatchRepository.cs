@@ -1,5 +1,6 @@
 ﻿using Core.Dtos.Batch;
 using Core.Dtos.Common;
+using Core.Dtos.Courses;
 using Domain.Entities;
 using Domain.Entities.Student;
 using System;
@@ -12,6 +13,7 @@ namespace Core.Interface.Repository
 {
     public interface IBatchRepository
     {
+        #region Admin
         Task CreateBatchAsync(Batch entity);
         Task<bool> CourseExistsAsync(int courseId);
 
@@ -27,15 +29,30 @@ namespace Core.Interface.Repository
         Task<bool> UpdateBatchAsync(Batch batch);
 
         //Batch Sechdule
-        Task<bool> BatchExistsAsync(int batchId);
+        Task<Batch?> BatchExistsAsync(int batchId);
+
+        Task CreateBatchClassSessionAsync(List<BatchClassSession> session);
 
         Task<bool> ScheduleExistsAsync( int batchId,  DayOfWeek dayOfWeek, TimeSpan startTime, TimeSpan endTime);
 
         Task CreateScheduleAsync(BatchSchedule schedule);
         Task<BatchSchedule?> GetByIdBatchScheduleAsync(int scheduleId);
         Task<BatchSchedule?> GetByIdBatchScheduleAsync(int scheduleId,int batchId);
+        Task<List<BatchClassSession?>> GetListByIdBatchClassSessionAsync(int scheduleId,int batchId);
         Task<List<GetBatchScheduleDto>> GetListBatchSchedulesAsync(int batchId);
         Task<bool> ScheduleExistsAsync(int batchId, DayOfWeek dayOfWeek,TimeSpan startTime, TimeSpan endTime, int scheduleId);
-        Task<PageResultDto<GetBatchScheduleDto>> GetBatchScheduleListAsync( PaginationRequestDto pagination,BatchScheduleFilterDto filter);
+        Task<PageResultDto<GetBatchScheduleGroupDto>> GetBatchScheduleListAsync( PaginationRequestDto pagination,BatchScheduleFilterDto filter);
+        #endregion
+
+        #region Teacher
+        //Task<PageResultDto<GetTeacherBatchListDto>?> GetListBatchActiveForTeacherAsync(int pageNumber, int pageSize);
+
+
+
+        #endregion
+
+
+
+
     }
 }

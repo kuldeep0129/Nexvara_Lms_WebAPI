@@ -40,6 +40,7 @@ namespace Core.Dtos.Courses
 
         public bool IsPublished { get; set; } = false;
         public CourseAccessType? AccessType { get; set; }
+        public ScheduleClassType? Mode { get; set; } 
 
         public decimal? Price { get; set; }
         public int SortOrder { get; set; } = 0;

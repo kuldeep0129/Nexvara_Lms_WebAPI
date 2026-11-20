@@ -147,11 +147,7 @@ namespace Infrastructure.Services
                     "File size cannot be greater than 5 MB.");
             }
 
-            if (!file.ContentType.StartsWith("image/"))
-            {
-                throw new ArgumentException(
-                    "Only image files are allowed.");
-            }
+          
 
             if (string.IsNullOrWhiteSpace(folder))
             {

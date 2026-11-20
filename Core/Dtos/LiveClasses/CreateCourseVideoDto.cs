@@ -16,11 +16,16 @@ namespace Core.Dtos.LiveClasses
         public int? CourseId { get; set; }
         public int? ModuleId { get; set; }
         public int? BatchId { get; set; }
+
         public string Title { get; set; }
         public string? Description { get; set; }
+
         public IFormFile? VideoUrl { get; set; }
-        public string? DurationInSeconds { get; set; }
-        public string? DisplayOrder { get; set; }
+
+        public string? VideoYoutubeUrl { get; set; }
+
+        public int? DisplayOrder { get; set; }
+
         public bool IsPublished { get; set; }
     }
 }

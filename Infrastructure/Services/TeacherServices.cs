@@ -2,6 +2,7 @@
 using Core.Dtos.Batch;
 using Core.Dtos.Common;
 using Core.Dtos.Courses;
+using Core.Dtos.Teacher.Batch;
 using Core.Interface.Repository;
 using Core.Interface.Services;
 using Domain.common;
@@ -9,10 +10,12 @@ using Domain.Entities;
 using Domain.Entities.Teacher;
 using Domain.Enums;
 using Infrastructure.Repositories;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -24,12 +27,14 @@ namespace Infrastructure.Services
         private readonly IFileUploadServices _uploadServices;
         private readonly IMapper _mapper;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly UserManager<ApplicationUser> _userManager;
-        public TeacherServices(IMapper mapper, IUnitOfWork unitOfWork, ITeacherRepository reposiotry, IFileUploadServices fileservices, UserManager<ApplicationUser> userManager)
+        public TeacherServices(IMapper mapper, IUnitOfWork unitOfWork, IHttpContextAccessor httpContextAccessor, ITeacherRepository reposiotry, IFileUploadServices fileservices, UserManager<ApplicationUser> userManager)
         {
             _reposiotry = reposiotry;
             _uploadServices = fileservices;
             _mapper = mapper;
+            _httpContextAccessor = httpContextAccessor;
             _unitOfWork = unitOfWork;
             _userManager = userManager;
         }
@@ -199,14 +204,14 @@ namespace Infrastructure.Services
         public async Task<ResponseDto<object>> GetListAdminTeacherAssignAsync(AdminTeacherRequestVm vm)
         {
             var response = new ResponseDto<object>();
-            if(vm == null)
+            if (vm == null)
             {
                 response.ResponseCode = (int)APIResponseCodes.BadRequest;
                 response.Success = false;
                 response.Message = SystemMessage.RequestBodyNull;
                 return response;
             }
-            var res = await _reposiotry.GetListAdminTeacherAssignAsync(vm.PageNumber,vm.PageSize,vm.Status);
+            var res = await _reposiotry.GetListAdminTeacherAssignAsync(vm.PageNumber, vm.PageSize, vm.Status);
             response.ResponseCode = (int)APIResponseCodes.OK;
             response.Success = true;
             response.Message = SystemMessage.RecordFetch;
@@ -236,12 +241,228 @@ namespace Infrastructure.Services
         {
             var response = new ResponseDto<object>();
             var res = await _reposiotry.GetListTeacherIdNameAsync();
-            response.Success=true;
+            response.Success = true;
             response.Data = res;
             response.Message = SystemMessage.RecordFetch;
-            response.ResponseCode = (int)APIResponseCodes.OK; 
+            response.ResponseCode = (int)APIResponseCodes.OK;
             return response;
-            
+
+        }
+        public async Task<ResponseDto<object>> GetMyBatchesAsync(
+            PaginationRequestDto pagination,
+            TeacherBatchFilterDto filter)
+        {
+            // =========================================================
+            // 1. Get current authenticated user
+            // =========================================================
+
+            var user = _httpContextAccessor.HttpContext?.User;
+
+            if (user == null ||
+                user.Identity?.IsAuthenticated != true)
+            {
+                return new ResponseDto<object>
+                {
+                    ResponseCode = (int)APIResponseCodes.UnAuthrized,
+                    Success = false,
+                    Message = SystemMessage.UnAuthorized,
+                    Data = null
+                };
+            }
+
+
+            // =========================================================
+            // 2. Role validation
+            // =========================================================
+
+            if (!user.IsInRole(RoleData.Trainer.ToString()))
+            {
+                return new ResponseDto<object>
+                {
+                    ResponseCode = (int)APIResponseCodes.UnAuthrized,
+                    Success = false,
+                    Message = SystemMessage.UnAuthorized,
+                    Data = null
+                };
+            }
+
+
+            // =========================================================
+            // 3. Get current teacher ID from JWT
+            // =========================================================
+
+            var teacherId = user.FindFirstValue(
+                ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(teacherId))
+            {
+                return new ResponseDto<object>
+                {
+                    ResponseCode = (int)APIResponseCodes.UnAuthrized,
+                    Success = false,
+                    Message = "Teacher identity could not be determined.",
+                    Data = null
+                };
+            }
+
+
+            // =========================================================
+            // 4. Validate pagination
+            // =========================================================
+
+            pagination ??= new PaginationRequestDto();
+
+            if (pagination.PageNumber <= 0)
+            {
+                pagination.PageNumber = 1;
+            }
+
+            if (pagination.PageSize <= 0)
+            {
+                pagination.PageSize = 10;
+            }
+
+            if (pagination.PageSize > 100)
+            {
+                pagination.PageSize = 100;
+            }
+
+
+            // =========================================================
+            // 5. Validate filter
+            // =========================================================
+
+            filter ??= new TeacherBatchFilterDto();
+
+            if (!string.IsNullOrWhiteSpace(filter.Status))
+            {
+                filter.Status = filter.Status.Trim();
+            }
+
+
+            // =========================================================
+            // 6. Repository call
+            // =========================================================
+
+            var result = await _reposiotry.GetMyBatchesAsync(
+                teacherId,
+                pagination,
+                filter);
+
+
+            // =========================================================
+            // 7. Response message based on filter
+            // =========================================================
+
+            var message = result.TotalCount > 0
+                ? "Batches retrieved successfully."
+                : "No batches found.";
+
+
+            // =========================================================
+            // 8. Final response
+            // =========================================================
+
+            return new ResponseDto<object>
+            {
+                ResponseCode = (int)APIResponseCodes.OK,
+                Success = true,
+                Message = message,
+                Data = result
+            };
+        }
+
+        public async Task<ResponseDto<object>> GetTeacherBatchOverViewAsync(int batchId)
+        {
+           
+            if (batchId <= 0)
+            {
+                return new ResponseDto<object>
+                {
+                    Success = false,
+                    ResponseCode = (int)APIResponseCodes.BadRequest,
+                    Message = "Invalid batch id."
+                };
+            }
+
+
+            // =====================================
+            // 2. Get Current Logged-in User
+            // =====================================
+
+            var user = _httpContextAccessor.HttpContext?.User;
+
+            if (user == null || !user.Identity!.IsAuthenticated)
+            {
+                return new ResponseDto<object>
+                {
+                    Success = false,
+                    ResponseCode = (int)APIResponseCodes.UnAuthrized,
+                    Message = "User is not authenticated."
+                };
+            }
+
+
+            // =====================================
+            // 3. Validate Teacher Role
+            // =====================================
+
+            if (!user.IsInRole("Trainer"))
+            {
+                return new ResponseDto<object>
+                {
+                    Success = false,
+                    ResponseCode = (int)APIResponseCodes.Forbidden,
+                    Message = "You are not authorized to access teacher batch details."
+                };
+            }
+
+
+            // =====================================
+            // 4. Get Teacher Id
+            // =====================================
+
+            var teacherId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(teacherId))
+            {
+                return new ResponseDto<object>
+                {
+                    Success = false,
+                    ResponseCode = (int)APIResponseCodes.UnAuthrized,
+                    Message = "Unable to identify logged-in teacher."
+                };
+            }
+
+
+            // =====================================
+            // 5. Get Batch Overview
+            // =====================================
+
+            var result = await _reposiotry.GetTeacherBatchOverViewAsync(batchId, teacherId);
+
+            if (result == null)
+            {
+                return new ResponseDto<object>
+                {
+                    Success = false,
+                    ResponseCode = (int)APIResponseCodes.NotFound,
+                    Message = "Batch not found or you are not assigned to this batch."
+                };
+            }
+
+
+            // =====================================
+            // 6. Success Response
+            // =====================================
+
+            return new ResponseDto<object>
+            {
+                Success = true,
+                ResponseCode = (int)APIResponseCodes.OK,
+                Message = "Batch overview fetched successfully.",
+                Data = result
+            };
         }
 
         public async Task<ResponseDto<object>> UpdateBatchTeacherAsync(UpdateTeacherBatchDto dto, string userId)
@@ -304,7 +525,7 @@ namespace Infrastructure.Services
             return response;
         }
 
-        public async Task<ResponseDto<object>> UpdateTeacherAssigmentPrimaryAsync(int batchId, string teacherId,UpdateBatchTeacherAssignStatusDto dto, string userId)
+        public async Task<ResponseDto<object>> UpdateTeacherAssigmentPrimaryAsync(int batchId, string teacherId, UpdateBatchTeacherAssignStatusDto dto, string userId)
         {
             var response = new ResponseDto<object>();
             if (string.IsNullOrWhiteSpace(userId))
@@ -337,7 +558,7 @@ namespace Infrastructure.Services
                 response.Message = SystemMessage.TeacherAssignedNotFound;
                 return response;
             }
-            if(batchTeacher.IsPrimary == dto.Status)
+            if (batchTeacher.IsPrimary == dto.Status)
             {
                 response.ResponseCode = (int)APIResponseCodes.BadRequest;
                 response.Success = false;
@@ -346,9 +567,9 @@ namespace Infrastructure.Services
                 : "Teacher is already not the primary teacher.";
                 return response;
             }
-            if(dto.Status)
+            if (dto.Status)
             {
-                var primaryExists = await _reposiotry.PrimaryTeacherExistsAsync(batchId,teacherId);
+                var primaryExists = await _reposiotry.PrimaryTeacherExistsAsync(batchId, teacherId);
                 if (primaryExists)
                 {
                     response.ResponseCode = (int)APIResponseCodes.BadRequest;

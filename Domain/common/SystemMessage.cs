@@ -81,6 +81,12 @@ namespace Domain.common
         public const string TeacherAssignedNotFound = "Teacher assignment not found.";
         public const string ThisBatchAlreadyHoldPrimaryTeacher = "This batch already has a primary teacher.";
         public const string TeacherIsAlreadyAssignedThisBatch = "Teacher is already assigned to this batch.";
+        public const string AlreadyEnrolled = "This Batch Also Enrolled by You.";
+        public const string InvalidOrUnavailableBatch = "Invalid or unavailable batch.";
+        public const string UnablePaymentCheckout = "Unable to create payment checkout. Please retry.";
+        public const string EnrollmentCreatedPaymentPending = "Enrollment created. Payment is pending.";
+        public const string AlreadyPlaceinTable = "This Display order no syllabus Already Exists.";
+        public const string SyllabusInActive = "This Syllabus is InActive Please Conntact Administration.";
 
     }
 }

@@ -11,5 +11,7 @@ namespace Core.Dtos.Common
         public string PublicId { get; set; } = string.Empty;
 
         public string Url { get; set; } = string.Empty;
+        public double? Duration { get; set; }
+
     }
 }

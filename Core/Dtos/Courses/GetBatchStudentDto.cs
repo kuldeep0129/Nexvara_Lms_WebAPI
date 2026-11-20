@@ -16,5 +16,6 @@ namespace Core.Dtos.Courses
         public DateTime? EnrolledAt { get; set; }
         public DateTime? CompleteAt { get; set; }
         public bool IsActive { get; set; }
+        public bool IsEnrolled { get; set; }
     }
 }

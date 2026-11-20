@@ -80,6 +80,83 @@ namespace Nexvara.WebAPI.Controllers
 
         }
 
+        [HttpPost("StartSession")]
+        [Authorize]
+        public async Task<IActionResult> CreateVideoProgress([FromBody] StartVideoSessionDto dto)
+        {
+            var userId = _userManger.GetUserId(User);
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+
+            var sessionId = await _liveServices.StartSessionAsync(
+                userId, dto.VideoId);
+
+            return Ok(new
+            {
+                success = true,
+                message = "Video session started.",
+                data = new { sessionId }
+            });
+
+        }
+
+        [HttpPost("SaveProgress")]
+        [Authorize]
+        public async Task<IActionResult> CreateVideoProgressAsync([FromBody] SaveVideoProgressDto dto)
+        {
+            var userId = _userManger.GetUserId(User);
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+
+            var result = await _liveServices.SaveProgressAsync(
+              userId, dto);
+
+            if (!result)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Unable to save video progress."
+                });
+            }
+
+            return Ok(new
+            {
+                success = true,
+                message = "Progress saved successfully."
+            });
+
+        }
+
+        [HttpPost("EndSession")]
+        public async Task<IActionResult> EndSession(Guid sessionId, [FromQuery] string reason = "UserClosed")
+        {
+            var userId = _userManger.GetUserId(User);
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+            var result = await _liveServices.EndSessionAsync(
+                userId, sessionId, reason);
+
+            if (!result)
+                return NotFound(new
+                {
+                    success = false,
+                    message = "Active session not found."
+                });
+
+            return Ok(new
+            {
+                success = true,
+                message = "Session closed."
+            });
+        }
+
 
         #endregion
 
@@ -255,7 +332,7 @@ namespace Nexvara.WebAPI.Controllers
 
         [HttpGet("Get-List-CourseVideo")]
         [Authorize]
-        public async Task<IActionResult> GetListCourseVideo([FromQuery] PaginationRequestDto dto)
+        public async Task<IActionResult> GetListCourseVideo([FromQuery] PaginationRequestDto dto, int batchId)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -263,7 +340,7 @@ namespace Nexvara.WebAPI.Controllers
             {
                 return Unauthorized();
             }
-            var result = await _liveServices.GetListCourseVideoAsync(dto);
+            var result = await _liveServices.GetListCourseVideoAsync(dto, batchId);
             return StatusCode((int)result.ResponseCode, result);
         }
 
@@ -294,6 +371,50 @@ namespace Nexvara.WebAPI.Controllers
             return StatusCode((int)result.ResponseCode, result);
         }
 
+        [HttpGet("Get-Student-CourseVideo")]
+        [Authorize]
+        public async Task<IActionResult> GetStudentCourseVideosAsync([FromQuery] int batchId)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Unauthorized();
+            }
+            var result = await _liveServices.GetStudentCourseVideosAsync(batchId, userId);
+            return StatusCode((int)result.ResponseCode, result);
+        }
+
+        [HttpGet("{videoId:int}")]
+        public async Task<IActionResult> GetProgress(int videoId)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var result = await _liveServices.GetProgressAsync(
+                userId, videoId);
+
+            return Ok(new
+            {
+                success = true,
+                data = result
+            });
+        }
+
+        // Get student's last watched video
+        [HttpGet("LastWatched")]
+        public async Task<IActionResult> GetLastWatched()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var result = await _liveServices.GetLastWatchedAsync(
+                userId);
+
+            return Ok(new
+            {
+                success = true,
+                data = result
+            });
+        }
         #endregion
     }
 }

@@ -42,7 +42,7 @@ namespace Domain.Entities.UserInterface
         public string? ImageUrl { get; set; }
 
         public bool IsPublished { get; set; } = false;
-
+        public string Mode { get; set; } 
         public string? AccessType { get; set; }
 
         public decimal? Price { get; set; }

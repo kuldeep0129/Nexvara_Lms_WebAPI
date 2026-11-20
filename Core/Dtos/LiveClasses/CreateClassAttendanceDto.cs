@@ -14,6 +14,6 @@ namespace Core.Dtos.LiveClasses
         public string? StudentId { get; set; }
         public DateTime JoinedAt { get; set; }
         public DateTime LeftAt { get; set; }
-        public DateTime DurationInSeconds { get; set; }
+        public int DurationInSeconds { get; set; }
     }
 }

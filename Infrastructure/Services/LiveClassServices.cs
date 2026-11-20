@@ -10,9 +10,13 @@ using Domain.Entities.Common;
 using Domain.Entities.Student;
 using Domain.Entities.UserInterface;
 using Domain.Enums;
+using Infrastructure.Repositories;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Json;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
@@ -26,12 +30,16 @@ namespace Infrastructure.Services
         private readonly IFileUploadServices _uploadServices;
         private readonly IMapper _mapper;
         private readonly IUnitOfWork _unitOfWork;
-        public LiveClassServices(IMapper mapper, IUnitOfWork unitOfWork, ILiveClassRepository reposiotry, IFileUploadServices fileservices)
+        private readonly HttpClient _httpClient;
+        private readonly IConfiguration _configuration;
+        public LiveClassServices(IMapper mapper, IUnitOfWork unitOfWork, ILiveClassRepository reposiotry, IFileUploadServices fileservices, IConfiguration configuration, HttpClient httpClient)
         {
             _reposiotry = reposiotry;
             _uploadServices = fileservices;
             _mapper = mapper;
             _unitOfWork = unitOfWork;
+            _configuration = configuration;
+            _httpClient = httpClient;
         }
 
         public async Task<ResponseDto<object>> CreateClassAttendanceAsync(CreateClassAttendanceDto dto, string userId)
@@ -89,6 +97,15 @@ namespace Infrastructure.Services
                 return response;
             }
 
+            bool hasCloudinaryVideo = dto.VideoUrl != null && dto.VideoUrl.Length > 0;
+            bool hasYoutubeVideo = !string.IsNullOrWhiteSpace(dto.VideoYoutubeUrl);
+            if (hasCloudinaryVideo == hasYoutubeVideo)
+            {
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                response.Success = false;
+                response.Message = "Please provide exactly one video source.";
+                return response;
+            }
             var data = new CourseVideos
             {
                 CourseId = dto.CourseId,
@@ -97,17 +114,32 @@ namespace Infrastructure.Services
                 Title = dto.Title,
                 Description = dto.Description,
                 DisplayOrder = dto.DisplayOrder,
-                DurationInSeconds = dto.DurationInSeconds,
                 IsPublished = dto.IsPublished,
                 IsActive = true,
                 CreateAt = DateTime.Now,
                 CreateBy = userId
             };
-            if (dto.VideoUrl != null && dto.VideoUrl.Length > 0)
+            if (hasCloudinaryVideo)
             {
                 var uploadResult = await _uploadServices.UploadCloubinaryAsync(dto.VideoUrl, "Video/Recorded", default);
+                data.VideoProvider = "Cloudinary";
                 data.VideoUrl = uploadResult.Url;
                 data.VideoUrlPublicId = uploadResult.PublicId;
+                data.DurationInSeconds = uploadResult.Duration.HasValue ? (int)Math.Ceiling(uploadResult.Duration.Value) : null;
+            }
+            else
+            {
+                var videoId = ExtractYouTubeVideoId(dto.VideoYoutubeUrl!);
+                if (string.IsNullOrWhiteSpace(videoId))
+                {
+                    response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                    response.Success = false;
+                    response.Message = "Invalid YouTube video URL.";
+                    return response;
+                }
+                data.VideoProvider = "YouTube";
+                data.VideoId = videoId;
+                data.DurationInSeconds = await GetYouTubeDurationAsync(videoId);
             }
             await _reposiotry.CreateCourseVideosAsync(data);
             await _unitOfWork.SaveAsync();
@@ -116,7 +148,52 @@ namespace Infrastructure.Services
             response.Message = SystemMessage.RecordCreate;
             return response;
         }
+        private string? ExtractYouTubeVideoId(string url)
+        {
+            if (string.IsNullOrWhiteSpace(url))
+                return null;
 
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+                return null;
+
+            if (uri.Host.Equals("youtu.be",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                return uri.AbsolutePath.Trim('/');
+            }
+
+            if (uri.Host.EndsWith("youtube.com",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                if (uri.AbsolutePath == "/watch")
+                    return System.Web.HttpUtility.ParseQueryString(
+                        uri.Query).Get("v");
+
+                if (uri.AbsolutePath.StartsWith("/embed/"))
+                    return uri.AbsolutePath.Split('/').Last();
+
+                if (uri.AbsolutePath.StartsWith("/shorts/"))
+                    return uri.AbsolutePath.Split('/').Last();
+            }
+
+            return null;
+        }
+        private async Task<int?> GetYouTubeDurationAsync(string videoId)
+        {
+            var apiKey = _configuration["YouTube:ApiKey"];
+
+            var url = $"https://www.googleapis.com/youtube/v3/videos" +
+                      $"?part=contentDetails&id={videoId}&key={apiKey}";
+
+            var result = await _httpClient.GetFromJsonAsync<YouTubeVideoResponse>(url);
+
+            var duration = result?.Items?.FirstOrDefault()?.ContentDetails?.Duration;
+
+            if (string.IsNullOrWhiteSpace(duration))
+                return null;
+
+            return (int)System.Xml.XmlConvert.ToTimeSpan(duration).TotalSeconds;
+        }
         public async Task<ResponseDto<object>> CreateLiveClassAsync(CreateLiveClassDto dto, string userId)
         {
             var response = new ResponseDto<object>();
@@ -293,7 +370,7 @@ namespace Infrastructure.Services
             return response;
         }
 
-        public async Task<ResponseDto<object>> GetListCourseVideoAsync(PaginationRequestDto dto)
+        public async Task<ResponseDto<object>> GetListCourseVideoAsync(PaginationRequestDto dto, int batchId)
         {
             var response = new ResponseDto<object>();
             if (dto == null)
@@ -303,7 +380,7 @@ namespace Infrastructure.Services
                 response.Message = SystemMessage.RequestBodyNull;
                 return response;
             }
-            var res = await _reposiotry.GetListCourseVideosAsync(dto.PageNumber, dto.PageSize);
+            var res = await _reposiotry.GetListCourseVideosAsync(dto.PageNumber, dto.PageSize, batchId);
             response.ResponseCode = (int)APIResponseCodes.OK;
             response.Success = true;
             response.Data = res;
@@ -396,23 +473,73 @@ namespace Infrastructure.Services
                 response.Message = SystemMessage.UnAuthorized;
                 return response;
             }
+            // Both sources cannot be provided together.
+            bool hasCloudinaryVideo = dto.VideoUrl != null && dto.VideoUrl.Length > 0;
+            bool hasYoutubeVideo = !string.IsNullOrWhiteSpace(dto.VideoYoutubeUrl);
+
+            if (hasCloudinaryVideo && hasYoutubeVideo)
+            {
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                response.Success = false;
+                response.Message = "Please provide only one video source.";
+                return response;
+            }
+
             var res = await _reposiotry.GetByIdCourseVideosUpdateAsync(dto.Id);
+            string? youtubeVideoId = null;
+
+            if (hasYoutubeVideo)
+            {
+                youtubeVideoId = ExtractYouTubeVideoId(dto.VideoYoutubeUrl!);
+
+                if (string.IsNullOrWhiteSpace(youtubeVideoId))
+                {
+                    response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                    response.Success = false;
+                    response.Message = "Invalid YouTube video URL.";
+                    return response;
+                }
+            }
+
+            // Update basic details.
             res.CourseId = dto.CourseId;
             res.ModuleId = dto.ModuleId;
             res.BatchId = dto.BatchId;
-            res.Title = dto.Title;
+            res.Title = dto.Title.Trim();
             res.Description = dto.Description;
             res.DisplayOrder = dto.DisplayOrder;
-            res.DurationInSeconds = dto.DurationInSeconds;
             res.IsPublished = dto.IsPublished;
             res.UpdateAt = DateTime.Now;
             res.UpdateBy = userId;
-            if (dto.VideoUrl != null && dto.VideoUrl.Length > 0)
+
+            // Replace video only when a new source is provided.
+            if (hasCloudinaryVideo)
             {
-                var uploadResult = await _uploadServices.UploadCloubinaryAsync(dto.VideoUrl, "Video/Recorded", default);
+                var uploadResult = await _uploadServices.UploadCloubinaryAsync(
+                    dto.VideoUrl!,
+                    "Video/Recorded",
+                    default);
+
+                res.VideoProvider = "Cloudinary";
                 res.VideoUrl = uploadResult.Url;
                 res.VideoUrlPublicId = uploadResult.PublicId;
+                res.VideoId = null;
+
+                res.DurationInSeconds = uploadResult.Duration.HasValue
+                    ? (int)Math.Ceiling(uploadResult.Duration.Value)
+                    : null;
             }
+            else if (hasYoutubeVideo)
+            {
+                var duration = await GetYouTubeDurationAsync(youtubeVideoId!);
+
+                res.VideoProvider = "YouTube";
+                res.VideoId = youtubeVideoId;
+                res.VideoUrl = null;
+                res.VideoUrlPublicId = null;
+                res.DurationInSeconds = duration;
+            }
+
             await _unitOfWork.SaveAsync();
             response.ResponseCode = (int)APIResponseCodes.OK;
             response.Success = true;
@@ -604,6 +731,85 @@ namespace Infrastructure.Services
             response.Success = true;
             response.Message = SystemMessage.RecordUpdate;
             return response;
+        }
+
+        public async Task<ResponseDto<object>> GetStudentCourseVideosAsync(int batchId, string studentId)
+        {
+            var response = new ResponseDto<object>();
+           
+            if (string.IsNullOrWhiteSpace(studentId))
+            {
+                response.ResponseCode = (int)APIResponseCodes.UnAuthrized;
+                response.Success = false;
+                response.Message = SystemMessage.UnAuthorized;
+                return response;
+            }
+            if (batchId <= 0)
+            {
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                response.Success = false;
+                response.Message = SystemMessage.InvalidId;
+                return response;
+            }
+            var res = await _reposiotry.GetStudentCourseVideosAsync(batchId,studentId);        
+            response.ResponseCode = (int)APIResponseCodes.OK;
+            response.Success = true;
+            response.Data = res;
+            response.Message = SystemMessage.RecordFetch;
+            return response;
+        }
+
+        public async Task<Guid?> StartSessionAsync(string studentId, int videoId)
+        {
+            if (videoId <= 0)
+                throw new ArgumentException("Invalid video ID.");
+
+            var session = await _reposiotry.StartSessionAsync(studentId, videoId);
+
+            return session.SessionId; 
+        }
+
+        public async Task<bool> SaveProgressAsync(string studentId, SaveVideoProgressDto request)
+        {
+            if (request.EventId == Guid.Empty ||
+                  request.SessionId == Guid.Empty ||
+                  request.VideoId <= 0 ||
+                  request.PositionSeconds < 0)
+            {
+                throw new ArgumentException(
+                    "Invalid video progress request.");
+            }
+
+            var allowedEvents = new[]
+            {
+                "Checkpoint",
+                "Paused",
+                "PageHidden",
+                "Ended",
+                "Resumed"
+            };
+
+            if (!allowedEvents.Contains(request.EventType))
+                throw new ArgumentException("Invalid event type.");
+
+            return await _reposiotry.SaveProgressAsync(
+                studentId, request);
+        }
+
+        public async Task<VideoProgressResponseDto?> GetProgressAsync(string studentId, int videoId)
+        {
+            return await _reposiotry.GetProgressAsync(studentId, videoId);
+        }
+
+        public async Task<VideoProgressResponseDto?> GetLastWatchedAsync(string studentId)
+        {
+            return await _reposiotry.GetLastWatchedAsync(studentId);
+
+        }
+
+        public async Task<bool> EndSessionAsync(string studentId, Guid sessionId, string reason)
+        {
+            return await _reposiotry.EndSessionAsync( studentId, sessionId, reason);
         }
     }
 }

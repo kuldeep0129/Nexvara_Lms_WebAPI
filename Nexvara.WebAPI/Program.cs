@@ -45,8 +45,35 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 #endregion
 
+#region Configuration Toropay
+//builder.Services.AddHttpClient<IPaymentCheckoutService, RazorpayCheckoutService>(
+//    (serviceProvider, client) =>
+//    {
+//        var configuration =
+//            serviceProvider.GetRequiredService<IConfiguration>();
+
+//        var baseUrl = configuration["ToroPay:BaseUrl"]
+//            ?? throw new InvalidOperationException(
+//                "ToroPay BaseUrl is missing.");
+
+//        client.BaseAddress = new Uri(baseUrl);
+//    });
+#endregion
+
 #region Connection string
-builder.Services.AddDbContext<ApplicationDbContext>(Options => Options.UseSqlServer(builder.Configuration.GetConnectionString("con")));
+builder.Services.AddDbContext<ApplicationDbContext>(Options => Options.UseSqlServer(builder.Configuration.GetConnectionString("con"), sqlOptions => sqlOptions.UseCompatibilityLevel(120)));
+//builder.Services.AddDbContext<ApplicationDbContext>(options =>
+//    options.UseSqlServer(
+//        builder.Configuration.GetConnectionString("DefaultConnection"),
+//        sqlOptions =>
+//        {
+//            sqlOptions.EnableRetryOnFailure(
+//                maxRetryCount: 5,
+//                maxRetryDelay: TimeSpan.FromSeconds(10),
+//                errorNumbersToAdd: null
+//            );
+//        }
+//    ));
 #endregion
 
 #region Cors
@@ -55,7 +82,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("ReactPolicy", policy =>
     {
         policy
-            .WithOrigins("http://localhost:5173", "http://localhost:3000", "https://nexvara-technology.onrender.com")
+            .WithOrigins("http://localhost:5173", "http://localhost:3000", "https://nexvara-technology.onrender.com", "http://127.0.0.1:5173")
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -106,6 +133,14 @@ builder.Services.AddScoped<IBatchRepository, BatchRepository>();
 builder.Services.AddScoped<IBatchServices, BatchServices>();
 builder.Services.AddScoped<ITeacherRepository, TeacherRepository>();
 builder.Services.AddScoped<ITeacherServices, TeacherServices>();
+builder.Services.AddScoped<IStudentRepository, StudentRepository>();
+builder.Services.AddScoped<IStudentServices, StudentServices>();
+builder.Services.AddHttpClient<ILiveClassServices, LiveClassServices>();
+builder.Services.AddScoped<ILiveClassRepository, LiveClassRepository>();
+builder.Services.AddHttpClient<RazorpayCheckoutService>();
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<IPaymentCheckoutService, RazorpayCheckoutService>();
+builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 #endregion
 
 #region JwtConfiguration

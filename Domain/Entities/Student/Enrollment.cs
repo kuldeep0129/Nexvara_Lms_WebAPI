@@ -24,7 +24,10 @@ namespace Domain.Entities.Student
         [ForeignKey(nameof(BatchId))]
         public Batch? batch { get; set; }
         public DateTime? EnrollmentDate { get; set; }
-        public decimal? CompletionPercentage { get; set; }
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal? CompletionPercentage { get; set; } = 0;
         public DateTime? CompletedAt { get; set; }
+        public string? PaymentStatus { get; set; } 
+
     }
 }

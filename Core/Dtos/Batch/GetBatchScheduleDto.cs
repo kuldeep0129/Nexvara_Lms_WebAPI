@@ -18,12 +18,18 @@ namespace Core.Dtos.Batch
         public int? CourseId { get; set; }
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? CourseName { get; set; }
+       
         public string DayOfWeek { get; set; }
         public DateTime? StartDate { get; set; }
 
         public DateTime? EndDate { get; set; }
 
         public TimeSpan? StartTime { get; set; }
+        public string? ImageUrl { get; set; }
+        public int? EnrolledStudent { get; set; }
+        public int? TotalStuentSheet { get; set; }
+        public string? TeacherId { get; set; }
+        public string? TeacherName { get; set; }
 
         public TimeSpan? EndTime { get; set; }
 

@@ -2,6 +2,7 @@
 using Core.Dtos.Courses;
 using Core.Interface.Services;
 using Domain.Entities;
+using Domain.Entities.Student;
 using Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -70,6 +71,35 @@ namespace Nexvara.WebAPI.Controllers
 
 
 
+        [HttpPost("Create-CourseSyllabus")]
+        [Authorize]
+        public async Task<IActionResult> CreateCourseSyllabus([FromBody] CreateCourseSyllabusDto dto)
+        {
+            var userId = _userManger.GetUserId(User);
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+            var res = await _courseServices.CreateCourseSyllabusAsync(dto, userId);
+            return StatusCode(res.ResponseCode, res);
+
+        }
+
+
+
+        [HttpPost("Create-CourseMaterial")]
+        [Authorize]
+        public async Task<IActionResult> CreateCourseMaterial([FromForm] CreateCourseMaterialsDto dto)
+        {
+            var userId = _userManger.GetUserId(User);
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+            var res = await _courseServices.CreateCourseMaterialAsync(dto, userId);
+            return StatusCode(res.ResponseCode, res);
+
+        }
 
 
         #endregion
@@ -120,6 +150,35 @@ namespace Nexvara.WebAPI.Controllers
 
 
 
+        [HttpPut("Update-CourseSyllabus")]
+        [Authorize]
+        public async Task<IActionResult> UpdateCourseSyllabus([FromBody] UpdateCourseSyllabusDto dto)
+        {
+            var userId = _userManger.GetUserId(User);
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+            var res = await _courseServices.UpdateCourseSyllabusAsync(dto, userId);
+            return StatusCode(res.ResponseCode, res);
+
+        }
+
+
+
+        [HttpPut("Update-CourseMaterial")]
+        [Authorize]
+        public async Task<IActionResult> UpdateCourseMaterial([FromForm] UpdateCourseMaterialDto dto)
+        {
+            var userId = _userManger.GetUserId(User);
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+            var res = await _courseServices.UpdateCourseMaterialAsync(dto, userId);
+            return StatusCode(res.ResponseCode, res);
+
+        }
         #endregion
 
         #region UpdateStatus
@@ -166,6 +225,34 @@ namespace Nexvara.WebAPI.Controllers
         }
 
 
+        [HttpPut("update-status-CourseSyllabus")]
+        [Authorize]
+        public async Task<IActionResult> UpdateStatusCourseSyllabus([FromQuery] int Id)
+        {
+            var userId = _userManger.GetUserId(User);
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+            var res = await _courseServices.UpdateCourseSyllabusStatusAsync(Id, userId);
+            return StatusCode(res.ResponseCode, res);
+
+        }
+
+        [HttpPut("update-status-CourseMaterial")]
+        [Authorize]
+        public async Task<IActionResult> UpdateStatusCourseMaterial([FromQuery] int Id)
+        {
+            var userId = _userManger.GetUserId(User);
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+            var res = await _courseServices.UpdateCourseMaterialStatusAsync(Id, userId);
+            return StatusCode(res.ResponseCode, res);
+
+        }
+
 
         #endregion
 
@@ -195,6 +282,28 @@ namespace Nexvara.WebAPI.Controllers
         }
 
 
+        [HttpGet("{courseId:int}/curriculum")]
+        public async Task<IActionResult> GetCourseCurriculum(int courseId)
+        {
+            var response = await _courseServices.GetCourseCurriculumAsync(courseId);
+
+            return StatusCode(response.ResponseCode, response);
+        }
+
+        [HttpGet("CouseSyllabus")]
+        public async Task<IActionResult> GetCourseCouseSyllabus(int Id)
+        {
+            var response = await _courseServices.GetByIdCourseSyllabusAsync(Id);
+
+            return StatusCode(response.ResponseCode, response);
+        }
+        [HttpGet("CouseMaterial")]
+        public async Task<IActionResult> GetCourseCouseMaterial(int Id)
+        {
+            var response = await _courseServices.GetByIdCourseMaterialAsync(Id);
+
+            return StatusCode(response.ResponseCode, response);
+        }
 
         #endregion
 
@@ -268,10 +377,42 @@ namespace Nexvara.WebAPI.Controllers
             var result = await _courseServices.GetListCoursesPublishAsync(dto);
             return StatusCode((int)result.ResponseCode, result);
         }
+        
+
+        [HttpGet("Get-List-Course-Syllabus")]
+        [Authorize]
+        public async Task<IActionResult> GetListCourseSyllabusAsync([FromQuery] PaginationRequestDto dto, int courseId)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Unauthorized();
+            }
+            var result = await _courseServices.GetListCourseSyllabusAsync(dto,courseId);
+            return StatusCode((int)result.ResponseCode, result);
+        }
+
+
 
 
         #endregion
 
+        #region Publish
+        [HttpPut("update-Publish-CourseMaterial")]
+        [Authorize]
+        public async Task<IActionResult> UpdatePublishCourseMaterial([FromQuery] int Id)
+        {
+            var userId = _userManger.GetUserId(User);
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+            var res = await _courseServices.UpdateCourseMaterialPublishAsync(Id, userId);
+            return StatusCode(res.ResponseCode, res);
+
+        }
+        #endregion
 
 
     }

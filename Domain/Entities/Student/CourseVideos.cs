@@ -19,16 +19,19 @@ namespace Domain.Entities.Student
         public Course? course { get; set; }
         public int? ModuleId { get; set; }
         [ForeignKey(nameof(ModuleId))]
-        public CourseModule? module { get; set; }
+        public CourseSyllabus? module { get; set; }
         public int? BatchId { get; set; }
         [ForeignKey(nameof(BatchId))]
         public Batch? batch { get; set; }
         public string Title { get; set; }
         public string? Description { get; set; }
+        [MaxLength(100)]
+        public string? VideoId { get; set; }
         public string? VideoUrl { get; set; }
+        public string VideoProvider { get; set; } = "YouTube";
         public string? VideoUrlPublicId { get; set; }
-        public string? DurationInSeconds { get; set; }
-        public string? DisplayOrder { get; set; }
+        public int? DurationInSeconds { get; set; }
+        public int? DisplayOrder { get; set; }
         public bool IsPublished { get; set; }
 
     }
