@@ -364,6 +364,7 @@ namespace Infrastructure.Repositories
                     v.Id,
                     BatchId = v.BatchId,
                     ModuleId = v.ModuleId,
+                    
                     ModuleName = v.module.Title,
                     Duration = v.DurationInSeconds ?? 0
                 }).ToListAsync();

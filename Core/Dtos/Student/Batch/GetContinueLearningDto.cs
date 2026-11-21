@@ -20,6 +20,7 @@ namespace Core.Dtos.Student.Batch
 
     public class GetContinueModuledto
     {
+
         public int ModuleId { get; set; }
         public string ModuleName { get; set; }
         public string CurrentLeftCompleteDuration { get; set; }

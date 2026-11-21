@@ -979,5 +979,16 @@ namespace Core.Interface.Services
             response.Message = SystemMessage.RecordFetch;
             return response;
         }
+
+        public async Task<ResponseDto<object>> GetStudyMaterialAsync(string useId)
+        {
+            var response = new ResponseDto<object>();
+            var res = await _reposiotry.GetStudyMaterialAsync(useId);
+            response.ResponseCode = (int)APIResponseCodes.OK;
+            response.Success = true;
+            response.Data = res;
+            response.Message = SystemMessage.RecordFetch;
+            return response;
+        }
     }
 }

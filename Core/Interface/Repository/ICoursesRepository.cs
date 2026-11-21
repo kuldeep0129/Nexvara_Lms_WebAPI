@@ -34,6 +34,8 @@ namespace Core.Interface.Repository
         Task<GetCourseModuleDto?> GetByIdCoursesModuleAsync(int Id);
         Task<PageResultDto<GetCourseModuleDto>?> GetListCourseModuleAsync(int pageNumber, int pageSize);
         Task<CourseModule?> UpdateCourseModuleAsync(int Id);
+        Task<GetStudyMaterialdashboardDto> GetStudyMaterialAsync(string useId);
+
 
         //Batch 
         Task CreateBatchAsync(Batch entity);

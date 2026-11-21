@@ -610,6 +610,40 @@ namespace Infrastructure.Repositories
             };
         }
 
+        public async Task<GetStudyMaterialdashboardDto> GetStudyMaterialAsync(string useId)
+        {
+            var batchIds = await _context.Enrollments.AsNoTracking().Where(x => x.StudentId == useId && x.IsActive && x.batch.IsActive)
+                .Select(g => g.BatchId).Distinct().ToListAsync();
+          
+              if (!batchIds.Any())
+    {
+        return new GetStudyMaterialdashboardDto();
+    }
+            var material = await _context.CourseMaterials.AsNoTracking().Where(x=> x.IsActive && x.IsPublished && batchIds.Contains(x.BatchId.Value))
+                .Select(x=> new GetStudyMaterialDto
+                {
+                    Id = x.Id,
+                    CourseId = x.CourseId.Value,
+                    CourseName = x.course.Title,
+                    BatchId = x.BatchId.Value,
+                    BatchName = x.batch.Name,
+                    ModuleId = x.ModuleId.Value,
+                    ModuleName = x.module.Title,
+                    Title = x.Title,
+                    FileUrl = x.FileUrl,
+                    FileType = x.FileType,
+                    FileSize = x.FileSize,
+                    IsActive = x.IsActive
+                }).OrderBy(x=> x.BatchId).ThenBy(x=> x.ModuleId).ThenBy(x=> x.Title).ToListAsync();
+            int totalMaterialCount = material.Count;
+            var data = new GetStudyMaterialdashboardDto
+            {
+                Total = totalMaterialCount,
+                material = material
+            };
+            return data;
+        }
+
         public async Task<bool> IsDisplayOrderExistsCourseSyllabusAsync(int Id, int displayOrder)
         {
             return await _context.CourseSyllabus.AnyAsync(x => x.CourseId == Id && x.DisplayOrder == displayOrder);

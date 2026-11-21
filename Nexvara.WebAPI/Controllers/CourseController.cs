@@ -393,6 +393,20 @@ namespace Nexvara.WebAPI.Controllers
             return StatusCode((int)result.ResponseCode, result);
         }
 
+        [HttpGet("Get-List-Study-Material")]
+        [Authorize]
+        public async Task<IActionResult> GetListStudyMaterial()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Unauthorized();
+            }
+            var result = await _courseServices.GetStudyMaterialAsync(userId);
+            return StatusCode((int)result.ResponseCode, result);
+        }
+
 
 
 

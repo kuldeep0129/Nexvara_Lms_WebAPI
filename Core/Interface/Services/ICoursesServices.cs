@@ -46,7 +46,8 @@ namespace Core.Interface.Services
         Task<ResponseDto<object>> UpdateCourseMaterialStatusAsync(int Id, string userId);
         Task<ResponseDto<object>> UpdateCourseMaterialPublishAsync(int Id, string userId);
         Task<ResponseDto<object>> GetByIdCourseMaterialAsync(int Id);
-
+        Task<ResponseDto<object>> GetStudyMaterialAsync(string useId); 
+        
 
         //For Admin and Teacher Manage Course Batch
 
