@@ -4,6 +4,7 @@ using Core.Dtos.LiveClasses;
 using Core.Interface.Repository;
 using Domain.Entities.Common;
 using Domain.Entities.Student;
+using Domain.Enums;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -44,7 +45,7 @@ namespace Infrastructure.Repositories
 
         public async Task<bool> EndSessionAsync(string studentId, Guid sessionId, string reason)
         {
-            var session = await _context.Set<VideoWatchSession>().FirstOrDefaultAsync(x =>  x.SessionId == sessionId &&  x.StudentId == studentId && x.Status == "Active");
+            var session = await _context.Set<VideoWatchSession>().FirstOrDefaultAsync(x => x.SessionId == sessionId && x.StudentId == studentId && x.Status == "Active");
             if (session == null)
                 return false;
             session.Status = "Closed";
@@ -163,7 +164,7 @@ namespace Infrastructure.Repositories
                 .Select(x => new VideoProgressResponseDto
                 {
                     VideoId = x.VideoId ?? 0,
-                    LastPositionSeconds =  x.LastPositionSeconds ?? 0,
+                    LastPositionSeconds = x.LastPositionSeconds ?? 0,
                     WatchedSeconds = x.WatchedSeconds ?? 0,
                     CompletionPercentage = x.CompletionPercentage ?? 0,
                     IsCompleted = x.IsCompleted,
@@ -368,6 +369,59 @@ namespace Infrastructure.Repositories
             };
         }
 
+        public async Task<PageResultDto<GetStudentUpcomingLiveClassDto>> GetStudentUpcomingLiveClassesAsync(string studentId, DateTime currentDateTime, int pageNumber, int pageSize)
+        {
+            var query = _context.LiveClasses.AsNoTracking().Where(x => x.IsActive && x.BatchId != null && x.ScheduledStartAt >= currentDateTime &&
+
+                       _context.Enrollments.Any(e => e.BatchId == x.BatchId && e.StudentId == studentId &&
+                           e.IsActive &&
+                           (
+                               e.PaymentStatus == PaymentStatus.Success.ToString() || e.PaymentStatus == PaymentStatus.Free.ToString()
+                           )
+                       )
+                   )
+                   .Select(x => new GetStudentUpcomingLiveClassDto
+                   {
+                       Id = x.Id,
+
+                       BatchId = x.BatchId,
+                       BatchName = x.batch != null
+                           ? x.batch.Name
+                           : null,
+
+                       ModuleId = x.ModuleId,
+                       ModuleName = x.module != null
+                           ? x.module.Name
+                           : null,
+
+                       Title = x.Title,
+                       Description = x.Description,
+
+                       ScheduledStartAt = x.ScheduledStartAt,
+                       ScheduledEndAt = x.ScheduledEndAt,
+
+                       MeetingProvider = x.MeetingProvider,
+                       MeetingUrl = x.MeetingUrl
+                   });
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .OrderBy(x => x.ScheduledStartAt)
+                .ThenBy(x => x.Id)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PageResultDto<GetStudentUpcomingLiveClassDto>
+            {
+                Items = items,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
+        }
+
         public async Task<bool> SaveProgressAsync(string studentId, SaveVideoProgressDto request)
         {
             await using var transaction = await _context.Database.BeginTransactionAsync();
@@ -415,7 +469,7 @@ namespace Infrastructure.Repositories
                 progress.LastSavedAt = now;
                 progress.LastSessionId = request.SessionId;
                 progress.LastEventId = request.EventId;
-                progress.UpdateAt = now ;
+                progress.UpdateAt = now;
                 var duration = video.DurationInSeconds;
                 if (duration > 0)
                 {

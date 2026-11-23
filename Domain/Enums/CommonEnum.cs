@@ -60,4 +60,20 @@ namespace Domain.Enums
         Draft =4,
         Completed =5
     }
+    public enum AssessmentStatus
+    {
+        Start = 1,
+        Close =2,
+        Upcomming =3,
+        Draft =4,
+        Available = 5
+    }
+
+    public enum QuestionType
+    {
+        SingleChoice = 1,
+        MultipleChoice = 2,
+        TrueFalse = 3,
+        Descriptive = 4
+    }
 }

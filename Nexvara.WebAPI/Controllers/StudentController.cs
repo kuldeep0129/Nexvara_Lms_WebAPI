@@ -1,6 +1,8 @@
-﻿using Core.Dtos.Common;
+﻿using Core.Dtos.Certificate;
+using Core.Dtos.Common;
 using Core.Dtos.Courses;
 using Core.Dtos.Payments;
+using Core.Dtos.Student;
 using Core.Dtos.Student.Batch;
 using Core.Interface.Services;
 using Domain.Entities;
@@ -168,6 +170,8 @@ namespace Nexvara.WebAPI.Controllers
 
             return StatusCode((int)result.ResponseCode, result);
         }
+
+
         [HttpGet("Get-Continue-Learning")]
         public async Task<IActionResult> GetContinueLearning()
         {
@@ -177,6 +181,75 @@ namespace Nexvara.WebAPI.Controllers
                 return Unauthorized();
             var result = await _studentServices.GetContinueLearningAsync(studentId);
             return Ok(result);
+        }
+
+
+        [HttpGet("Get-Studnet-My-Payment")]
+        public async Task<IActionResult> GetstudentMyPayment()
+        {
+            var studentId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(studentId))
+                return Unauthorized();
+            var result = await _studentServices.GetStudentPaymentsAsync(studentId);
+            return Ok(result);
+        }
+
+
+      
+        #region Student Attendance
+
+        [HttpGet("Get-Student-My-Class-Attendance")]
+        [Authorize]
+        public async Task<IActionResult> GetMyClassAttendance([FromQuery] PaginationRequestDto dto)
+        {
+            var studentId = User.FindFirstValue( ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(studentId))
+                return Unauthorized();
+            var result = await _studentServices.GetMyClassAttendanceAsync( studentId, dto);
+            return StatusCode((int)result.ResponseCode, result);
+        }
+
+
+        [HttpGet("Get-My-Certificates")]
+        [Authorize]
+        public async Task<IActionResult> GetMyCertificates()
+        {
+            var studentId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(studentId)) return Unauthorized();
+
+            var result = await _studentServices.GetMyCertificatesAsync(studentId);
+            return StatusCode(result.ResponseCode, result);
+        }
+
+        [HttpPost("Issue-Certificate")]
+        [Authorize]
+        public async Task<IActionResult> IssueCertificate([FromBody] IssueCertificateDto dto)
+        {
+            var issuedBy = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(issuedBy)) return Unauthorized();
+
+            var result = await _studentServices.IssueCertificateAsync(dto, issuedBy);
+            return StatusCode(result.ResponseCode, result);
+        }
+
+        #endregion
+
+
+        [HttpGet("Get-Student-Dashboard")]
+        [Authorize]
+        public async Task<IActionResult> GetStudentDashboard()
+        {
+            var studentId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(studentId))
+            {
+                return Unauthorized();
+            }
+
+            var result = await _studentServices.GetStudentDashboardAsync(studentId);
+
+            return StatusCode((int)result.ResponseCode, result);
         }
 
 
@@ -195,5 +268,112 @@ namespace Nexvara.WebAPI.Controllers
 
 
         #endregion
+
+
+
+        #region Student Assessment
+
+        // =====================================================
+        // 1. Get My Assessments
+        // =====================================================
+
+        [HttpGet("Get-My-Assessments")]
+        [Authorize]
+        public async Task<IActionResult> GetMyAssessments()
+        {
+            var studentId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(studentId))
+                return Unauthorized();
+
+            var result = await _studentServices.GetMyAssessmentsAsync(studentId);
+
+            return StatusCode(result.ResponseCode, result);
+        }
+
+
+        // =====================================================
+        // 2. Get Assessment Details
+        // =====================================================
+
+        [HttpGet("Get-Assessment-Details/{assessmentId:int}")]
+        [Authorize]
+        public async Task<IActionResult> GetAssessmentDetails(int assessmentId)
+        {
+            var studentId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(studentId))
+                return Unauthorized();
+
+            var result = await _studentServices.GetAssessmentDetailsAsync(
+                assessmentId, studentId);
+
+            return StatusCode(result.ResponseCode, result);
+        }
+
+
+        // =====================================================
+        // 3. Start Assessment
+        // =====================================================
+
+        [HttpPost("Start-Assessment/{assessmentId:int}")]
+        [Authorize]
+        public async Task<IActionResult> StartAssessment(int assessmentId)
+        {
+            var studentId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(studentId))
+                return Unauthorized();
+
+            var result = await _studentServices.StartAssessmentAsync(
+                assessmentId, studentId);
+
+            return StatusCode(result.ResponseCode, result);
+        }
+
+
+        // =====================================================
+        // 4. Submit Assessment
+        // =====================================================
+
+        [HttpPost("Submit-Assessment/{attemptId:int}")]
+        [Authorize]
+        public async Task<IActionResult> SubmitAssessment(
+            int attemptId,
+            [FromBody] SubmitAssessmentDto dto)
+        {
+            var studentId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(studentId))
+                return Unauthorized();
+
+            var result = await _studentServices.SubmitAssessmentAsync(
+                attemptId, dto, studentId);
+
+            return StatusCode(result.ResponseCode, result);
+        }
+
+
+        // =====================================================
+        // 5. Get My Assessment Results
+        // =====================================================
+
+        [HttpGet("Get-My-Assessment-Results")]
+        [Authorize]
+        public async Task<IActionResult> GetMyAssessmentResults()
+        {
+            var studentId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(studentId))
+                return Unauthorized();
+
+            var result = await _studentServices.GetMyAssessmentResultsAsync(
+                studentId);
+
+            return StatusCode(result.ResponseCode, result);
+        }
+
+        #endregion
+
     }
 }

@@ -811,5 +811,42 @@ namespace Infrastructure.Services
         {
             return await _reposiotry.EndSessionAsync( studentId, sessionId, reason);
         }
+
+        public async Task<ResponseDto<object>> GetStudentUpcomingLiveClassesAsync(PaginationRequestDto dto, string studentId)
+        {
+            var response = new ResponseDto<object>();
+
+            if (string.IsNullOrWhiteSpace(studentId))
+            {
+                response.ResponseCode = (int)APIResponseCodes.UnAuthrized;
+                response.Success = false;
+                response.Message = SystemMessage.UnAuthorized;
+                return response;
+            }
+
+            if (dto == null ||
+                dto.PageNumber < 1 ||
+                dto.PageSize < 1)
+            {
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                response.Success = false;
+                response.Message = SystemMessage.RequestBodyNull;
+                return response;
+            }
+
+            var result = await _reposiotry.GetStudentUpcomingLiveClassesAsync(
+                studentId,
+                DateTime.Now,
+                dto.PageNumber,
+                dto.PageSize
+            );
+
+            response.ResponseCode = (int)APIResponseCodes.OK;
+            response.Success = true;
+            response.Data = result;
+            response.Message = SystemMessage.RecordFetch;
+
+            return response;
+        }
     }
 }

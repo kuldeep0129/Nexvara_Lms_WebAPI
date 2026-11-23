@@ -21,7 +21,7 @@ namespace Infrastructure.Persistence
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<AdmissionApplication> AdmissionApplications { get; set; }
         public DbSet<Announcement> Announcements { get; set; }
-        //public DbSet<Certificate> Certificates { get; set; }
+        public DbSet<Certificates> Certificates { get; set; }
         public DbSet<Course> Courses { get; set; }
         public DbSet<Enquiry> Enquiries { get; set; }
         public DbSet<Program> Programs { get; set; }
@@ -55,6 +55,12 @@ namespace Infrastructure.Persistence
         public DbSet<Payments> Payments { get; set; }
         public DbSet<BatchClassSession> BatchClassSessions { get; set; }
         public DbSet<CourseMaterials> CourseMaterials { get; set; }
+        public DbSet<Assessments> Assessments { get; set; }
+        public DbSet<AssessmentQuestions> AssessmentQuestions { get; set; }
+        public DbSet<QuestionOptions> QuestionOptions { get; set; }
+        public DbSet<AssessmentAttempts> AssessmentAttempts { get; set; }
+        public DbSet<AssessmentAnswers> AssessmentAnswers { get; set; }
+        public DbSet<BatchSessionAttendance> BatchSessionAttendances { get; set; }
 
     }
 }

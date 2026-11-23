@@ -16,7 +16,7 @@ namespace Domain.Entities.Common
         public string? StudentId { get; set; }
         [ForeignKey(nameof(StudentId))]
         public ApplicationUser? user { get; set; }
-        public string? CourseId { get; set; }
+        public int? CourseId { get; set; }
         [ForeignKey(nameof(CourseId))]
         public Course? course { get; set; }
         public string? CertificateNumber { get; set; }

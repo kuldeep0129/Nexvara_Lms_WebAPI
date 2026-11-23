@@ -3,6 +3,7 @@ using Core.Dtos.Courses;
 using Core.Dtos.LiveClasses;
 using Core.Interface.Services;
 using Domain.Entities;
+using Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -415,6 +416,26 @@ namespace Nexvara.WebAPI.Controllers
                 data = result
             });
         }
+
+
+        [HttpGet("Get-Student-Upcoming-LiveClasses")]
+        [Authorize]
+        public async Task<IActionResult> GetStudentUpcomingLiveClasses([FromQuery] PaginationRequestDto dto)
+        {
+            var studentId = User.FindFirstValue(
+                ClaimTypes.NameIdentifier
+            );
+
+            if (string.IsNullOrWhiteSpace(studentId))
+            {
+                return Unauthorized();
+            }
+
+            var result = await _liveServices.GetStudentUpcomingLiveClassesAsync(dto, studentId);
+
+            return StatusCode((int)result.ResponseCode, result);
+        }
+
         #endregion
     }
 }

@@ -1,7 +1,9 @@
 ﻿using AutoMapper;
+using Core.Dtos.Certificate;
 using Core.Dtos.Common;
 using Core.Dtos.Courses;
 using Core.Dtos.Payments;
+using Core.Dtos.Student;
 using Core.Dtos.Student.Batch;
 using Core.Interface.Repository;
 using Core.Interface.Services;
@@ -206,6 +208,45 @@ namespace Infrastructure.Services
             }
         }
 
+        public async Task<ResponseDto<object>> GetAssessmentDetailsAsync(int assessmentId, string studentId)
+        {
+            var response = new ResponseDto<object>();
+
+            if (string.IsNullOrWhiteSpace(studentId))
+            {
+                response.ResponseCode = (int)APIResponseCodes.UnAuthrized;
+                response.Success = false;
+                response.Message = SystemMessage.UnAuthorized;
+                return response;
+            }
+
+            if (assessmentId <= 0)
+            {
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                response.Success = false;
+                response.Message = "Invalid assessment ID.";
+                return response;
+            }
+
+            var data = await _reposiotry.GetAssessmentDetailsAsync(
+                assessmentId, studentId);
+
+            if (data == null)
+            {
+                response.ResponseCode = (int)APIResponseCodes.NotFound;
+                response.Success = false;
+                response.Message = "Assessment not found or you are not enrolled in this batch.";
+                return response;
+            }
+
+            response.ResponseCode = (int)APIResponseCodes.OK;
+            response.Success = true;
+            response.Message = "Assessment details fetched successfully.";
+            response.Data = data;
+
+            return response;
+        }
+
         public async Task<ResponseDto<object>> GetByIdBatchStudentAsync(int Id)
         {
             var response = new ResponseDto<object>();
@@ -341,6 +382,161 @@ namespace Infrastructure.Services
             return response;
         }
 
+        public async Task<ResponseDto<object>> GetMyAssessmentResultsAsync(string studentId)
+        {
+            var response = new ResponseDto<object>();
+
+            if (string.IsNullOrWhiteSpace(studentId))
+            {
+                response.ResponseCode = (int)APIResponseCodes.UnAuthrized;
+                response.Success = false;
+                response.Message = SystemMessage.UnAuthorized;
+                return response;
+            }
+
+            var data = await _reposiotry.GetMyAssessmentResultsAsync(studentId);
+
+            response.ResponseCode = (int)APIResponseCodes.OK;
+            response.Success = true;
+            response.Message = "Assessment results fetched successfully.";
+            response.Data = data;
+
+            return response;
+        }
+
+        public async Task<ResponseDto<object>> GetMyAssessmentsAsync(string studentId)
+        {
+            var response = new ResponseDto<object>();
+
+            if (string.IsNullOrWhiteSpace(studentId))
+            {
+                response.ResponseCode = (int)APIResponseCodes.UnAuthrized;
+                response.Success = false;
+                response.Message = SystemMessage.UnAuthorized;
+                return response;
+            }
+
+            var data = await _reposiotry.GetMyAssessmentsAsync(studentId);
+
+            response.ResponseCode = (int)APIResponseCodes.OK;
+            response.Success = true;
+            response.Message = "Assessments fetched successfully.";
+            response.Data = data;
+
+            return response;
+        }
+
+        public async Task<ResponseDto<object>> GetMyCertificatesAsync(string studentId)
+        {
+
+            var response = new ResponseDto<object>();
+            if (string.IsNullOrWhiteSpace(studentId))
+            {
+                response.ResponseCode = (int)APIResponseCodes.UnAuthrized;
+                response.Success = false;
+                response.Message = "Student authentication is required.";
+                return response;
+            }
+
+            response.Data = await _reposiotry.GetMyCertificatesAsync(studentId);
+            response.ResponseCode = (int)APIResponseCodes.OK;
+            response.Success = true;
+            response.Message = "Certificates fetched successfully.";
+            return response;
+        }
+
+        public async Task<ResponseDto<object>> GetMyClassAttendanceAsync(string studentId, PaginationRequestDto dto)
+        {
+            var response = new ResponseDto<object>();
+
+            if (string.IsNullOrWhiteSpace(studentId))
+            {
+                response.ResponseCode = (int)APIResponseCodes.UnAuthrized;
+                response.Success = false;
+                response.Message = SystemMessage.UnAuthorized;
+                return response;
+            }
+
+            if (dto == null)
+            {
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                response.Success = false;
+                response.Message = SystemMessage.RequestBodyNull;
+                return response;
+            }
+
+            dto.PageNumber = Math.Max(1, dto.PageNumber);
+            dto.PageSize = Math.Clamp(dto.PageSize, 1, 50);
+
+            var data = await _reposiotry.GetStudentClassAttendanceAsync(  studentId,  dto.PageNumber,  dto.PageSize);
+
+            response.ResponseCode = (int)APIResponseCodes.OK;
+            response.Success = true;
+            response.Message = SystemMessage.RecordFetch;
+            response.Data = data;
+
+            return response;
+
+        }
+
+        public Task<List<QuestionOptions>> GetQuestionOptionsAsync(int questionId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<ResponseDto<object>> GetStudentDashboardAsync(string studentId)
+        {
+            var response = new ResponseDto<object>();
+
+            // =====================================================
+            // 1. Validate Student
+            // =====================================================
+
+            if (string.IsNullOrWhiteSpace(studentId))
+            {
+                response.ResponseCode = (int)APIResponseCodes.UnAuthrized;
+                response.Success = false;
+                response.Message = SystemMessage.UnAuthorized;
+                return response;
+            }
+
+            // =====================================================
+            // 2. Get Dashboard Data
+            // =====================================================
+
+            var data = await _reposiotry.GetStudentDashboardAsync(studentId);
+
+            // =====================================================
+            // 3. Prepare Response
+            // =====================================================
+
+            response.ResponseCode = (int)APIResponseCodes.OK;
+            response.Success = true;
+            response.Message = "Student dashboard fetched successfully.";
+            response.Data = data;
+
+            return response;
+        }
+
+        public async Task<ResponseDto<object>> GetStudentPaymentsAsync(string studentId)
+        {
+
+            var response = new ResponseDto<object>();
+            if (string.IsNullOrWhiteSpace(studentId))
+            {
+                response.ResponseCode = (int)APIResponseCodes.UnAuthrized;
+                response.Success = false;
+                response.Message = SystemMessage.UnAuthorized;
+                return response;
+            }
+            var res = await _reposiotry.GetStudentPaymentsAsync(studentId);
+            response.ResponseCode = (int)APIResponseCodes.OK;
+            response.Success = true;
+            response.Message = SystemMessage.RecordFetch;
+            response.Data = res;
+            return response;
+        }
+
         public async Task<ResponseDto<object>> GetStudentSechduleAsync(DateTime? dateTime, string studentId)
         {
             var response = new ResponseDto<object>();
@@ -356,6 +552,377 @@ namespace Infrastructure.Services
             response.Success = true;
             response.Message = SystemMessage.RecordFetch;
             response.Data = res;
+            return response;
+        }
+
+        public async Task<ResponseDto<object>> IssueCertificateAsync(IssueCertificateDto dto, string issuedBy)
+        {
+            var response = new ResponseDto<object>();
+            if (dto == null || string.IsNullOrWhiteSpace(dto.StudentId) || dto.CourseId <= 0)
+            {
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                response.Success = false;
+                response.Message = "Valid StudentId and CourseId are required.";
+                return response;
+            }
+            if (!await _reposiotry.IsStudentEligibleForCertificateAsync(dto.StudentId, dto.CourseId))
+            {
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                response.Success = false;
+                response.Message = "Student must complete the course and have a successful/free enrollment before certificate issuance.";
+                return response;
+            }
+            if (await _reposiotry.IsCertificateIssuedAsync(dto.StudentId, dto.CourseId))
+            {
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                response.Success = false;
+                response.Message = "A certificate has already been issued for this student and course.";
+                return response;
+            }
+
+            var now = DateTime.UtcNow;
+            var certificate = new Certificates
+            {
+                StudentId = dto.StudentId.Trim(),
+                CourseId = dto.CourseId,
+                CertificateNumber = $"NXV-{now:yyyyMMdd}-{Guid.NewGuid():N}".ToUpperInvariant(),
+                VerificationCode = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(24)),
+                IssueDate = now,
+                CertificateUrl = string.IsNullOrWhiteSpace(dto.CertificateUrl) ? null : dto.CertificateUrl.Trim(),
+                IsActive = true,
+                CreateAt = now,
+                CreateBy = issuedBy
+            };
+
+            await _reposiotry.CreateStudentCertificateAsync(certificate);
+            await _unitOfWork.SaveAsync();
+
+            response.Data = new
+            {
+                certificate.Id,
+                certificate.CertificateNumber,
+                certificate.VerificationCode,
+                certificate.StudentId,
+                certificate.CourseId,
+                certificate.IssueDate,
+                certificate.CertificateUrl
+            };
+            response.ResponseCode = (int)APIResponseCodes.Created;
+            response.Success = true;
+            response.Message = "Certificate issued successfully.";
+            return response;
+        }
+
+        public async Task<ResponseDto<object>> StartAssessmentAsync(int assessmentId, string studentId)
+        {
+            var response = new ResponseDto<object>();
+
+            if (string.IsNullOrWhiteSpace(studentId))
+            {
+                response.ResponseCode = (int)APIResponseCodes.UnAuthrized;
+                response.Success = false;
+                response.Message = SystemMessage.UnAuthorized;
+                return response;
+            }
+
+            var assessment = await _reposiotry.GetAssessmentDetailsAsync(
+                assessmentId, studentId);
+
+            if (assessment == null)
+            {
+                response.ResponseCode = (int)APIResponseCodes.NotFound;
+                response.Success = false;
+                response.Message = "Assessment not found.";
+                return response;
+            }
+
+            var now = DateTime.Now;
+
+            if (assessment.StartAt > now)
+            {
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                response.Success = false;
+                response.Message = "Assessment has not started yet.";
+                return response;
+            }
+
+            if (assessment.EndAt.HasValue && assessment.EndAt.Value <= now)
+            {
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                response.Success = false;
+                response.Message = "Assessment time has expired.";
+                return response;
+            }
+
+            var existingAttempt =
+                await _reposiotry.GetInProgressAssessmentAttemptAsync(
+                    assessmentId, studentId);
+
+            if (existingAttempt != null)
+            {
+                var existingExpiry = existingAttempt.StartedAt!.Value.AddMinutes(
+                    (double)assessment.DurationInMinutes);
+
+                if (now > existingExpiry ||
+                    (assessment.EndAt.HasValue && now > assessment.EndAt.Value))
+                {
+                    response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                    response.Success = false;
+                    response.Message = "Your assessment attempt has expired.";
+                    return response;
+                }
+
+                response.ResponseCode = (int)APIResponseCodes.OK;
+                response.Success = true;
+                response.Message = "Existing assessment attempt resumed.";
+
+                response.Data = new StartAssessmentDto
+                {
+                    AttemptId = existingAttempt.Id,
+                    AssessmentId = assessmentId,
+                    StartedAt = existingAttempt.StartedAt.Value,
+                    ExpiresAt = assessment.EndAt.HasValue
+                        ? (existingExpiry < assessment.EndAt.Value
+                            ? existingExpiry
+                            : assessment.EndAt.Value)
+                        : existingExpiry
+                };
+
+                return response;
+            }
+
+            var attempt = new AssessmentAttempts
+            {
+                AssessmentId = assessmentId,
+                StudentId = studentId,
+                StartedAt = now,
+                SubmittedAt = default,
+                ObtainedMarks = 0,
+                Percentage = 0,
+                IsPassed = false,
+                IsActive = true,
+                CreateBy = studentId,
+                CreateAt = now
+            };
+
+            await _reposiotry.CreateAssessmentAttemptAsync(attempt);
+            await _unitOfWork.SaveAsync();
+
+            var expiresAt = now.AddMinutes(
+                (double)assessment.DurationInMinutes);
+
+            if (assessment.EndAt.HasValue &&
+                assessment.EndAt.Value < expiresAt)
+            {
+                expiresAt = assessment.EndAt.Value;
+            }
+
+            response.ResponseCode = (int)APIResponseCodes.Created;
+            response.Success = true;
+            response.Message = "Assessment started successfully.";
+
+            response.Data = new StartAssessmentDto
+            {
+                AttemptId = attempt.Id,
+                AssessmentId = assessmentId,
+                StartedAt = now,
+                ExpiresAt = expiresAt
+            };
+
+            return response;
+        }
+
+        public async Task<ResponseDto<object>> SubmitAssessmentAsync(int attemptId, SubmitAssessmentDto dto, string studentId)
+        {
+            var response = new ResponseDto<object>();
+
+            if (string.IsNullOrWhiteSpace(studentId))
+            {
+                response.ResponseCode = (int)APIResponseCodes.UnAuthrized;
+                response.Success = false;
+                response.Message = SystemMessage.UnAuthorized;
+                return response;
+            }
+
+            if (dto == null || attemptId <= 0 || dto.Answers == null)
+            {
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                response.Success = false;
+                response.Message = "Invalid assessment submission.";
+                return response;
+            }
+
+            var attempt = await _reposiotry.GetAssessmentAttemptForSubmitAsync(
+                attemptId, studentId);
+
+            if (attempt == null)
+            {
+                response.ResponseCode = (int)APIResponseCodes.NotFound;
+                response.Success = false;
+                response.Message = "Assessment attempt not found.";
+                return response;
+            }
+
+           
+
+            if (!attempt.AssessmentId.HasValue ||
+                !attempt.StartedAt.HasValue)
+            {
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                response.Success = false;
+                response.Message = "Invalid assessment attempt.";
+                return response;
+            }
+
+            var assessment = await _reposiotry.GetAssessmentByIdAsync(
+                attempt.AssessmentId.Value);
+
+            if (assessment == null)
+            {
+                response.ResponseCode = (int)APIResponseCodes.NotFound;
+                response.Success = false;
+                response.Message = "Assessment not found.";
+                return response;
+            }
+
+            var now = DateTime.Now;
+
+            var expiryTime = attempt.StartedAt.Value.AddMinutes(
+                (double)(assessment.DurationInMinutes ?? 0));
+
+            if (assessment.EndAt.HasValue &&
+                assessment.EndAt.Value < expiryTime)
+            {
+                expiryTime = assessment.EndAt.Value;
+            }
+
+            if (now > expiryTime)
+            {
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                response.Success = false;
+                response.Message = "Assessment submission time has expired.";
+                return response;
+            }
+
+            if (dto.Answers
+                .GroupBy(x => x.QuestionId)
+                .Any(x => x.Count() > 1))
+            {
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                response.Success = false;
+                response.Message = "Duplicate question answers are not allowed.";
+                return response;
+            }
+
+            var questions = await _reposiotry.GetAssessmentQuestionsAsync(
+                attempt.AssessmentId.Value);
+
+            var questionDictionary = questions.ToDictionary(x => x.Id);
+
+            if (dto.Answers.Any(x =>
+                !questionDictionary.ContainsKey(x.QuestionId)))
+            {
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                response.Success = false;
+                response.Message = "Invalid question submitted.";
+                return response;
+            }
+
+            decimal obtainedMarks = 0;
+
+            var answerEntities = new List<AssessmentAnswers>();
+
+            foreach (var answer in dto.Answers)
+            {
+                var question = questionDictionary[answer.QuestionId];
+
+                if (answer.SelectedOptionId.HasValue &&
+                    !string.IsNullOrWhiteSpace(answer.AnswerText))
+                {
+                    response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                    response.Success = false;
+                    response.Message = "Submit either an option or text answer for a question.";
+                    return response;
+                }
+
+                decimal? marksObtained = null;
+
+                if (answer.SelectedOptionId.HasValue)
+                {
+                    var options = await _reposiotry.GetQuestionOptionsAsync(
+                        question.Id);
+
+                    var selectedOption = options.FirstOrDefault(x =>
+                        x.Id == answer.SelectedOptionId.Value);
+
+                    if (selectedOption == null)
+                    {
+                        response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                        response.Success = false;
+                        response.Message = "Invalid question option selected.";
+                        return response;
+                    }
+
+                    marksObtained = selectedOption.IsCorrect
+                        ? question.Marks
+                        : 0;
+
+                    obtainedMarks += marksObtained.Value;
+                }
+                else if (string.IsNullOrWhiteSpace(answer.AnswerText))
+                {
+                    marksObtained = 0;
+                }
+
+                answerEntities.Add(new AssessmentAnswers
+                {
+                    AttemptId = attempt.Id,
+                    QuestionId = question.Id,
+                    SelectedOptionId = answer.SelectedOptionId,
+                    AnswerText = answer.AnswerText?.Trim(),
+                    MarksObtained = marksObtained,
+                    IsActive = true,
+                    CreateAt = now,
+                    CreateBy = studentId
+                });
+            }
+
+            var totalMarks = assessment.TotalMarks ?? 0;
+
+            var percentage = totalMarks > 0
+                ? Math.Round((obtainedMarks / totalMarks) * 100, 2)
+                : 0;
+
+            attempt.ObtainedMarks = obtainedMarks;
+            attempt.Percentage = percentage;
+            attempt.IsPassed = obtainedMarks >= (assessment.PassingMarks ?? 0);
+            attempt.SubmittedAt = now;
+            attempt.UpdateAt = now;
+            attempt.UpdateBy = studentId;
+
+            await _reposiotry.CreateAssessmentAnswersAsync(answerEntities);
+
+            await _unitOfWork.SaveAsync();
+
+            var result = new StudentAssessmentResultDto
+            {
+                AttemptId = attempt.Id,
+                AssessmentId = assessment.Id,
+                AssessmentTitle = assessment.Title,
+                TotalMarks = totalMarks,
+                ObtainedMarks = obtainedMarks,
+                Percentage = percentage,
+                PassingMarks = assessment.PassingMarks ?? 0,
+                IsPassed = attempt.IsPassed,
+                StartedAt = attempt.StartedAt,
+                SubmittedAt = attempt.SubmittedAt
+            };
+
+            response.ResponseCode = (int)APIResponseCodes.OK;
+            response.Success = true;
+            response.Message = "Assessment submitted successfully.";
+            response.Data = result;
+
             return response;
         }
 
@@ -416,6 +983,41 @@ namespace Infrastructure.Services
             response.ResponseCode = (int)APIResponseCodes.OK;
             response.Success = true;
             response.Message = SystemMessage.RecordUpdate;
+            return response;
+        }
+
+        public async Task<ResponseDto<object>> VerifyCertificateAsync(string verificationCode)
+        {
+
+            var response = new ResponseDto<object>();
+            if (string.IsNullOrWhiteSpace(verificationCode))
+            {
+                response.ResponseCode = (int)APIResponseCodes.BadRequest;
+                response.Success = false;
+                response.Message = "Verification code is required.";
+                return response;
+            }
+
+            var certificate = await _reposiotry.GetCertificateByVerificationCodeAsync(verificationCode.Trim());
+            if (certificate == null)
+            {
+                response.ResponseCode = (int)APIResponseCodes.NotFound;
+                response.Success = false;
+                response.Message = "Certificate not found.";
+                return response;
+            }
+
+            response.Data = new CertificateVerificationDto
+            {
+                IsValid = !certificate.IsActive,
+                CertificateNumber = certificate.CertificateNumber,
+                StudentName = certificate.user?.FullName ?? string.Empty,
+                CourseName = certificate.course?.Title ?? string.Empty,
+                IssuedAt = certificate.IssueDate ?? default
+            };
+            response.ResponseCode = (int)APIResponseCodes.OK;
+            response.Success = true;
+            response.Message = certificate.IsActive ? "This certificate has been revoked." : "Certificate is valid.";
             return response;
         }
     }

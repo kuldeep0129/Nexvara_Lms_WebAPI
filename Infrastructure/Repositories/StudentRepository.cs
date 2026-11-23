@@ -1,5 +1,10 @@
-﻿using Core.Dtos.Common;
+﻿using Core.Dtos.Certificate;
+using Core.Dtos.Common;
 using Core.Dtos.Courses;
+using Core.Dtos.Dashboard;
+using Core.Dtos.Payments;
+using Core.Dtos.Student;
+using Core.Dtos.Student.Attendance;
 using Core.Dtos.Student.Batch;
 using Core.Dtos.Student.Sechdule;
 using Core.Interface.Repository;
@@ -438,5 +443,462 @@ namespace Infrastructure.Repositories
             var time = TimeSpan.FromSeconds(seconds);
             return time.TotalHours >= 1 ? time.ToString(@"hh\:mm\:ss") : time.ToString(@"mm\:ss");
         }
+
+        public async Task<PageResultDto<GetStudentClassAttendanceDto>> GetStudentClassAttendanceAsync(string studentId, int pageNumber, int pageSize)
+        {
+            pageNumber = Math.Max(1, pageNumber);
+            pageSize = Math.Clamp(pageSize, 1, 50);
+            var query = _context.ClassAttendances.AsNoTracking().Where(x =>  x.StudentId == studentId &&  x.IsActive);
+            var totalCount = await query.CountAsync();
+            var items = await query
+                .OrderByDescending(x => x.JoinedAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new GetStudentClassAttendanceDto
+                {
+                    Id = x.Id,
+                    LiveClassId = x.LiveClassId,
+                    LiveClassTitle = x.liveClasses != null  ? x.liveClasses.Title  : null,
+                    BatchName = x.liveClasses != null &&  x.liveClasses.batch != null  ? x.liveClasses.batch.Name : null,
+                    ModuleName = x.liveClasses != null &&  x.liveClasses.module != null  ? x.liveClasses.module.Name  : null,
+                    JoinedAt = x.JoinedAt,
+                    LeftAt = x.LeftAt,
+                    Status = x.Status,
+                    DurationInSeconds = x.DurationInSeconds
+                }).ToListAsync();
+
+            return new PageResultDto<GetStudentClassAttendanceDto>
+            {
+                Items = items,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
+        }
+
+        public async Task<List<StudentCertificateDto>> GetMyCertificatesAsync(string studentId)
+        {
+            return await _context.Certificates.AsNoTracking()
+               .Where(x => x.StudentId == studentId && x.IsActive)
+               .OrderByDescending(x => x.IssueDate)
+               .Select(x => new StudentCertificateDto
+               {
+                   Id = x.Id,
+                   CourseId = x.CourseId ?? 0,
+                   CourseName = x.course != null ? x.course.Title : string.Empty,
+                   CertificateNumber = x.CertificateNumber,
+                   VerificationCode = x.VerificationCode,
+                   IssuedAt = x.IssueDate ?? default,
+                   CertificateUrl = x.CertificateUrl,
+                   IsActive = x.IsActive
+               }).ToListAsync();
+        }
+
+        public  Task<bool> IsCertificateIssuedAsync(string studentId, int courseId)
+        {
+            return _context.Certificates.AnyAsync(x => x.StudentId == studentId && x.CourseId == courseId && x.IsActive);
+
+        }
+
+        public Task<bool> IsStudentEligibleForCertificateAsync(string studentId, int courseId)
+        {
+            return _context.Enrollments.AsNoTracking().AnyAsync(x =>
+                          x.StudentId == studentId && x.CourseId == courseId && x.IsActive &&
+                          (x.PaymentStatus == PaymentStatus.Success.ToString() || x.PaymentStatus == PaymentStatus.Free.ToString()) &&
+                          (x.CompletedAt != null || x.CompletionPercentage >= 60));
+        }
+
+        public Task<Certificates?> GetCertificateByVerificationCodeAsync(string verificationCode)
+        {
+            return _context.Certificates.AsNoTracking()
+                          .Include(x => x.user).Include(x => x.course)
+                          .FirstOrDefaultAsync(x => x.VerificationCode == verificationCode && x.IsActive);
+        }
+
+        public async Task CreateStudentCertificateAsync(Certificates certificate)
+        {
+            await _context.Certificates.AddAsync(certificate);
+        }
+
+        public async Task<List<StudentPaymentDto>> GetStudentPaymentsAsync(string studentId)
+        {
+            return await _context.Set<Payments>()
+                .AsNoTracking()
+                .Where(p => p.StudentId == studentId )
+                .OrderByDescending(p => p.PaidAt)
+                .Select(p => new StudentPaymentDto
+                {
+                    Id = p.Id,
+                    EnrollmentId = p.EnrollmentId,
+                    Amount = p.Amount,
+                    PaymentGateway = p.PaymentGateway,
+                    PaymentStatus = p.PaymentStatus,
+                    TransactionId = p.TransactionId,
+                    PaidAt = p.PaidAt
+                })
+                .ToListAsync();
+        }
+
+        public async Task<GetStudentDashboardDto> GetStudentDashboardAsync(string studentId)
+        {
+            var today = DateTime.Today;
+            var currentTime = DateTime.Now.TimeOfDay;
+
+            // =====================================================
+            // 1. Student Information
+            // =====================================================
+
+            var studentName = await _context.Users.AsNoTracking().Where(x => x.Id == studentId).Select(x => x.FullName).FirstOrDefaultAsync();
+
+            // =====================================================
+            // 2. Valid Enrollments
+            // =====================================================
+
+            var enrollmentQuery = _context.Enrollments
+                .AsNoTracking().Where(x =>
+                    x.StudentId == studentId &&
+                    x.IsActive &&
+                    x.BatchId != null &&
+                    (x.PaymentStatus == PaymentStatus.Free.ToString() ||
+                     x.PaymentStatus == PaymentStatus.Success.ToString()));
+
+            var enrolledCourses = await enrollmentQuery
+                .Where(x => x.CourseId != null)
+                .Select(x => x.CourseId)
+                .Distinct()
+                .CountAsync();
+
+            // =====================================================
+            // 3. Upcoming Live Classes
+            // =====================================================
+
+            var enrolledBatchIds = enrollmentQuery.Select(x => x.BatchId);
+
+            var liveClasses = await _context.BatchClassSessions
+                .AsNoTracking()
+                .Where(x =>
+                    x.BatchId != null &&
+                    enrolledBatchIds.Contains(x.BatchId) &&
+                    x.IsActive &&
+                    x.SessionDate >= today &&
+                    x.Status == BatchStatus.Active.ToString() &&
+                    (x.SessionDate > today || x.StartTime >= currentTime))
+                .CountAsync();
+
+            // =====================================================
+            // 4. Student Certificates
+            // =====================================================
+
+            var certificates = await _context.Certificates
+                .AsNoTracking()
+                .CountAsync(x =>
+                    x.StudentId == studentId &&
+                    x.IsActive);
+
+            // Assignment module is not yet implemented.
+            // =====================================================
+
+            // =====================================================
+            // 5. My Enrolled Courses
+            // =====================================================
+
+            var courses = await enrollmentQuery
+                .Where(x => x.CourseId != null && x.BatchId != null)
+                .Select(x => new StudentDashboardCourseDto
+                {
+                    BatchId = x.BatchId.Value,
+
+                    CourseId = x.CourseId.Value,
+
+                    CourseName = x.course != null
+                        ? x.course.Title
+                        : string.Empty,
+
+                    CourseImage = x.course != null
+                        ? x.course.ImageUrl
+                        : null,
+
+                    BatchName = x.batch != null
+                        ? x.batch.Name
+                        : string.Empty,
+
+                    BatchCode = x.batch != null
+                        ? x.batch.BatchCode
+                        : string.Empty,
+
+                    Progress = x.CompletionPercentage ?? 0,
+
+                    NextClassDate = _context.BatchClassSessions
+                        .Where(s =>
+                            s.BatchId == x.BatchId &&
+                            s.IsActive &&
+                            s.Status == BatchStatus.Active.ToString() &&
+                            (s.SessionDate > today ||
+                             (s.SessionDate == today &&
+                              s.StartTime >= currentTime)))
+                        .OrderBy(s => s.SessionDate)
+                        .ThenBy(s => s.StartTime)
+                        .Select(s => (DateTime?)s.SessionDate)
+                        .FirstOrDefault(),
+
+                    NextClassTime = _context.BatchClassSessions
+                        .Where(s =>
+                            s.BatchId == x.BatchId &&
+                            s.IsActive &&
+                            s.Status == BatchStatus.Active.ToString() &&
+                            (s.SessionDate > today ||
+                             (s.SessionDate == today &&
+                              s.StartTime >= currentTime)))
+                        .OrderBy(s => s.SessionDate)
+                        .ThenBy(s => s.StartTime)
+                        .Select(s => (TimeSpan?)s.StartTime)
+                        .FirstOrDefault()
+                })
+                .OrderByDescending(x => x.Progress)
+                .ToListAsync();
+
+            // =====================================================
+            // 6. Recent Grades
+            // =====================================================
+
+            // AssessmentAttempts is not registered in the current
+            // ApplicationDbContext, so no fake grades are returned.
+
+            var recentGrades = new List<StudentDashboardRecentGradeDto>();
+
+            // =====================================================
+            // 7. Final Dashboard Response
+            // =====================================================
+
+            return new GetStudentDashboardDto
+            {
+                StudentName = studentName ?? string.Empty,
+
+                Stats = new StudentDashboardStatsDto
+                {
+                    EnrolledCourses = enrolledCourses,
+                    LiveClasses = liveClasses,
+                    Certificates = certificates,
+                    AssignmentsDue = 0
+                },
+
+                Courses = courses,
+
+                RecentGrades = recentGrades
+            };
+        }
+
+        public async Task<List<StudentAssessmentListDto>> GetMyAssessmentsAsync(string studentId)
+        {
+            var now = DateTime.Now;
+
+            var enrolledBatchIds = _context.Enrollments
+                .AsNoTracking()
+                .Where(x =>
+                    x.StudentId == studentId &&
+                    x.IsActive &&
+                    x.BatchId != null &&
+                    (x.PaymentStatus == PaymentStatus.Free.ToString() ||
+                     x.PaymentStatus == PaymentStatus.Success.ToString()))
+                .Select(x => x.BatchId.Value);
+
+            var assessments = await _context.Assessments
+                .AsNoTracking()
+                .Where(x =>
+                    x.IsActive &&
+                    x.BatchId != null &&
+                    enrolledBatchIds.Contains(x.BatchId.Value))
+                .Select(x => new StudentAssessmentListDto
+                {
+                    Id = x.Id,
+                    Title = x.Title,
+                    Description = x.Description,
+
+                    CourseId = x.CourseId,
+                    CourseName = x.course != null
+                        ? x.course.Title
+                        : null,
+
+                    BatchId = x.BatchId,
+                    BatchName = x.batch != null
+                        ? x.batch.Name
+                        : null,
+
+                    TotalMarks = x.TotalMarks ?? 0,
+                    PassingMarks = x.PassingMarks ?? 0,
+                    DurationInMinutes = x.DurationInMinutes ?? 0,
+
+                    TotalQuestions = _context.AssessmentQuestions
+                        .Count(q => q.AssessmentId == x.Id && q.IsActive),
+
+                    StartAt = x.StartAt,
+                    EndAt = x.EndAt,
+
+                    Status = x.EndAt.HasValue && x.EndAt.Value < now
+                        ? AssessmentStatus.Close.ToString()
+                        : x.StartAt > now
+                            ? AssessmentStatus.Upcomming.ToString()
+                            : AssessmentStatus.Available.ToString(),
+
+                    HasAttempt = _context.AssessmentAttempts.Any(a =>
+                        a.AssessmentId == x.Id &&
+                        a.StudentId == studentId),
+
+                    AttemptId = _context.AssessmentAttempts
+                        .Where(a =>
+                            a.AssessmentId == x.Id &&
+                            a.StudentId == studentId &&
+                            a.IsActive)
+                        .OrderByDescending(a => a.StartedAt)
+                        .Select(a => (int?)a.Id)
+                        .FirstOrDefault(),
+
+                    IsSubmitted = _context.AssessmentAttempts.Any(a =>
+                        a.AssessmentId == x.Id &&
+                        a.StudentId == studentId &&
+                        a.SubmittedAt != null &&
+                        a.IsActive)
+                })
+                .OrderBy(x => x.StartAt)
+                .ToListAsync();
+
+            return assessments;
+        }
+
+        public async Task<StudentAssessmentDetailsDto?> GetAssessmentDetailsAsync(int assessmentId, string studentId)
+        {
+            var enrolledBatchIds = _context.Enrollments
+                   .AsNoTracking()
+                   .Where(x =>
+                       x.StudentId == studentId &&
+                       x.IsActive &&
+                       x.BatchId != null &&
+                       (x.PaymentStatus == PaymentStatus.Free.ToString() ||
+                        x.PaymentStatus == PaymentStatus.Success.ToString()))
+                   .Select(x => x.BatchId.Value);
+
+            var assessment = await _context.Assessments
+                .AsNoTracking()
+                .Where(x =>
+                    x.Id == assessmentId &&
+                    x.IsActive &&
+                    x.BatchId != null &&
+                    enrolledBatchIds.Contains(x.BatchId.Value))
+                .Select(x => new StudentAssessmentDetailsDto
+                {
+                    Id = x.Id,
+                    Title = x.Title,
+                    Description = x.Description,
+
+                    TotalMarks = x.TotalMarks ?? 0,
+                    PassingMarks = x.PassingMarks ?? 0,
+                    DurationInMinutes = x.DurationInMinutes ?? 0,
+
+                    StartAt = x.StartAt,
+                    EndAt = x.EndAt,
+
+                    TotalQuestions = _context.AssessmentQuestions
+                        .Count(q => q.AssessmentId == x.Id && q.IsActive),
+
+                    Questions = _context.AssessmentQuestions
+                        .Where(q =>
+                            q.AssessmentId == x.Id &&
+                            q.IsActive)
+                        .OrderBy(q => q.DisplayOrder)
+                        .Select(q => new StudentAssessmentQuestionDto
+                        {
+                            Id = q.Id,
+                            QuestionText = q.QuestionText,
+                            QuestionType = q.QuestionType,
+                            Marks = q.Marks,
+                            DisplayOrder = q.DisplayOrder,
+
+                            Options = _context.QuestionOptions
+                                .Where(o =>
+                                    o.QuestionId == q.Id &&
+                                    o.IsActive)
+                                .OrderBy(o => o.Id)
+                                .Select(o => new StudentQuestionOptionDto
+                                {
+                                    Id = o.Id,
+                                    OptionText = o.OptionText
+                                })
+                                .ToList()
+                        })
+                        .ToList()
+                })
+                .FirstOrDefaultAsync();
+
+            return assessment;
+        }
+
+        public async Task<Assessments?> GetAssessmentByIdAsync(int assessmentId)
+        {
+
+            return await _context.Assessments.FirstOrDefaultAsync(x =>  x.Id == assessmentId && x.IsActive);
+        }
+
+        public async Task<AssessmentAttempts?> GetInProgressAssessmentAttemptAsync(int assessmentId, string studentId)
+        {
+            return await _context.AssessmentAttempts.FirstOrDefaultAsync(x => x.AssessmentId == assessmentId && x.StudentId == studentId &&  x.SubmittedAt == null &&  x.IsActive);
+        }
+
+        public async Task<AssessmentAttempts?> GetAssessmentAttemptForSubmitAsync(int attemptId, string studentId)
+        {
+            return await _context.AssessmentAttempts.FirstOrDefaultAsync(x =>  x.Id == attemptId && x.StudentId == studentId && x.IsActive);
+        }
+
+        public async Task CreateAssessmentAttemptAsync(AssessmentAttempts attempt)
+        {
+            await _context.AssessmentAttempts.AddAsync(attempt);
+        }
+
+        public async Task<List<AssessmentQuestions>> GetAssessmentQuestionsAsync(int assessmentId)
+        {
+            return await _context.AssessmentQuestions.AsNoTracking().Where(x => x.AssessmentId == assessmentId &&  x.IsActive).ToListAsync();
+        }
+
+        public async Task CreateAssessmentAnswersAsync(List<AssessmentAnswers> answers)
+        {
+            await _context.AssessmentAnswers.AddRangeAsync(answers);
+        }
+
+        public async Task<List<StudentAssessmentResultDto>> GetMyAssessmentResultsAsync(string studentId)
+        {
+            return await _context.AssessmentAttempts.AsNoTracking().Where(x => x.StudentId == studentId && x.IsActive &&  x.SubmittedAt != null)
+                  .OrderByDescending(x => x.SubmittedAt)
+                  .Select(x => new StudentAssessmentResultDto
+                  {
+                      AttemptId = x.Id,
+                      AssessmentId = x.AssessmentId ?? 0,
+
+                      AssessmentTitle = x.assessmentId != null
+                          ? x.assessmentId.Title
+                          : string.Empty,
+
+                      TotalMarks = x.assessmentId != null
+                          ? x.assessmentId.TotalMarks ?? 0
+                          : 0,
+
+                      ObtainedMarks = x.ObtainedMarks,
+                      Percentage = x.Percentage,
+
+                      PassingMarks = x.assessmentId != null
+                          ? x.assessmentId.PassingMarks ?? 0
+                          : 0,
+
+                      IsPassed = x.IsPassed,
+
+                      StartedAt = x.StartedAt,
+                      SubmittedAt = x.SubmittedAt
+                  })
+                  .ToListAsync();
+        }
+
+        public async Task<List<QuestionOptions>> GetQuestionOptionsAsync(int questionId)
+        {
+            return await _context.QuestionOptions.AsNoTracking().Where(x => x.QuestionId == questionId && x.IsActive).ToListAsync();
+        }
     }
 }
+

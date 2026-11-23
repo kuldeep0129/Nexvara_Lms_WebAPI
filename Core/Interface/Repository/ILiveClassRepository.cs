@@ -54,5 +54,11 @@ namespace Core.Interface.Repository
         Task<VideoProgressResponseDto?> GetLastWatchedAsync(   string studentId);
 
         Task<bool> EndSessionAsync( string studentId, Guid sessionId, string reason);
+
+        //Student GetUpcomming Live Class
+
+        // Upcoming Live Classes
+        Task<PageResultDto<GetStudentUpcomingLiveClassDto>> GetStudentUpcomingLiveClassesAsync(  string studentId,   DateTime currentDateTime,  int pageNumber, int pageSize   );
+
     }
 }

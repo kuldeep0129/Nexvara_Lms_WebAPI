@@ -49,5 +49,11 @@ namespace Core.Interface.Services
         Task<VideoProgressResponseDto?> GetProgressAsync(  string studentId, int videoId);
         Task<VideoProgressResponseDto?> GetLastWatchedAsync( string studentId);
         Task<bool> EndSessionAsync(  string studentId, Guid sessionId, string reason);
+
+        //For Student Upcomming Live Classes
+
+        // Upcoming Live Classes
+        Task<ResponseDto<object>> GetStudentUpcomingLiveClassesAsync(  PaginationRequestDto dto,  string studentId );
+
     }
 }
