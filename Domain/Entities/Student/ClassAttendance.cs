@@ -16,6 +16,9 @@ namespace Domain.Entities.Student
         public int? LiveClassId { get; set; }
         [ForeignKey(nameof(LiveClassId))]
         public LiveClasses? liveClasses { get; set; }
+        public int? CourseVideoId { get; set; }
+        [ForeignKey(nameof(CourseVideoId))]
+        public CourseVideos? CourseVideo { get; set; }
 
         public string? StudentId { get; set; }
         [ForeignKey(nameof(StudentId))]

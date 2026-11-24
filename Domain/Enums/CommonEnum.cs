@@ -76,4 +76,9 @@ namespace Domain.Enums
         TrueFalse = 3,
         Descriptive = 4
     }
+    public enum AttendanceStatus
+    {
+        Present = 1,
+        Absent = 2,
+    }
 }

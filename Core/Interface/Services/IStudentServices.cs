@@ -23,7 +23,7 @@ namespace Core.Interface.Services
         Task<ResponseDto<object>> GetListBatchStudentAsync(PaginationRequestDto dto);
 
         //New Batch Code
-        Task<ResponseDto<object>> GetExploreCoursesAsync(ExploreCourseRequestDto dto);
+        Task<ResponseDto<object>> GetExploreCoursesAsync(ExploreCourseRequestDto dto,string userId);
 
         //Enrollment
         Task<ResponseDto<object>> CreateStudentEnrollmentAsync(CreateStudentEnrollmentDto dto, string userId);

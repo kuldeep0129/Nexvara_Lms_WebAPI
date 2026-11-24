@@ -76,7 +76,7 @@ namespace Infrastructure.Repositories
 
         }
 
-        public async Task<ExploreCourseResponseDto<ExploreBatchDto>> GetExploreCoursesAsync(ExploreCourseRequestDto request)
+        public async Task<ExploreCourseResponseDto<ExploreBatchDto>> GetExploreCoursesAsync(ExploreCourseRequestDto request,string userId)
         {
             var query = _context.Batches.AsNoTracking().Include(x => x.course).Where(x => x.IsPublished && x.IsActive && x.course.IsActive && x.course.IsPublished);
             // ============================
@@ -177,7 +177,7 @@ namespace Infrastructure.Repositories
                     Rating = x.course.Star,
                     IsActive = x.IsActive,
                     AvailableSeats = (x.Capacity ?? 0) - _context.Enrollments.Count(e => e.BatchId == x.Id && e.IsActive && (e.PaymentStatus == PaymentStatus.Free.ToString() || e.PaymentStatus == PaymentStatus.Success.ToString())),
-                    IsEnrolled = _context.Enrollments.Any(g => g.BatchId == x.Id && (g.PaymentStatus == PaymentStatus.Free.ToString() || g.PaymentStatus == PaymentStatus.Success.ToString()) && g.IsActive == true)
+                    IsEnrolled = _context.Enrollments.Any(g => g.StudentId== userId && g.BatchId == x.Id && (g.PaymentStatus == PaymentStatus.Free.ToString() || g.PaymentStatus == PaymentStatus.Success.ToString()) && g.IsActive == true)
                 }).ToListAsync();
 
             var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);

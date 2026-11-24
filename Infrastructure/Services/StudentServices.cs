@@ -346,7 +346,7 @@ namespace Infrastructure.Services
 
         }
 
-        public async Task<ResponseDto<object>> GetExploreCoursesAsync(ExploreCourseRequestDto dto)
+        public async Task<ResponseDto<object>> GetExploreCoursesAsync(ExploreCourseRequestDto dto,string userId)
         {
             var response = new ResponseDto<object>();
             if (dto == null)
@@ -356,7 +356,7 @@ namespace Infrastructure.Services
                 response.Message = SystemMessage.RequestBodyNull;
                 return response;
             }
-            var res = await _reposiotry.GetExploreCoursesAsync(dto);
+            var res = await _reposiotry.GetExploreCoursesAsync(dto,userId);
             response.ResponseCode = (int)APIResponseCodes.OK;
             response.Success = true;
             response.Data = res;

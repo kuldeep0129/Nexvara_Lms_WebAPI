@@ -1,6 +1,7 @@
 ﻿using Core.Dtos.Batch;
 using Core.Dtos.Common;
 using Core.Dtos.Courses;
+using Core.Dtos.Teacher.Attendance;
 using Core.Dtos.Teacher.Batch;
 using Domain.Enums;
 using System;
@@ -36,5 +37,11 @@ namespace Core.Interface.Services
         Task<ResponseDto<object>> GetMyBatchesAsync( PaginationRequestDto pagination, TeacherBatchFilterDto filter);
 
         Task<ResponseDto<object>> GetTeacherBatchOverViewAsync( int batchId);
+
+        //For teacher Manual Attendance 
+        Task<ResponseDto<object>> CreateStudentAttendanceAsync(CreateStudentAttendanceDto dto);
+        Task<ResponseDto<object>> GetStudnetAttendanceSummeryAsync(int batchId);
+        Task<ResponseDto<object>> GetParticularStudnetAttendanceSummeryAsync(int batchId, string studentId);
+        Task<ResponseDto<PageResultDto<GetBatchClassSessionDto>>> GetTeacherBatchClassSessionsAsync( int? batchId,int pageNumber, int pageSize);
     }
 }

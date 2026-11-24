@@ -137,7 +137,7 @@ namespace Nexvara.WebAPI.Controllers
             {
                 return Unauthorized();
             }
-            var result = await _studentServices.GetExploreCoursesAsync(dto);
+            var result = await _studentServices.GetExploreCoursesAsync(dto,userId);
             return StatusCode((int)result.ResponseCode, result);
         }
 

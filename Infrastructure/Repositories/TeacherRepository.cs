@@ -2,6 +2,7 @@
 using Core.Dtos.Batch;
 using Core.Dtos.Common;
 using Core.Dtos.Courses;
+using Core.Dtos.Teacher.Attendance;
 using Core.Dtos.Teacher.Batch;
 using Core.Interface.Repository;
 using Domain.Entities;
@@ -15,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Infrastructure.Repositories
@@ -25,6 +27,14 @@ namespace Infrastructure.Repositories
         public TeacherRepository(ApplicationDbContext context)
         {
             _context = context;
+        }
+
+        public async Task AddAttendanceRangeAsync(List<BatchSessionAttendance> attendance)
+        {
+            if (attendance.Count == 0)
+                return;
+
+            await _context.BatchSessionAttendances.AddRangeAsync(attendance);
         }
 
         public async Task<bool> BatchExistsAsync(int batchId)
@@ -102,6 +112,16 @@ namespace Infrastructure.Repositories
         public async Task<BatchTeacher?> GetByIdBatchTeacherUpdateAsync(int Id)
         {
             return await _context.BatchTeachers.FirstOrDefaultAsync(x => x.Id == Id && x.IsActive);
+        }
+
+        public async Task<List<string>> GetEnrolledStudentIdsAsync(int batchId, List<string> studentIds)
+        {
+            return await _context.Enrollments.AsNoTracking().Where(x => studentIds.Contains(x.StudentId) && x.BatchId == batchId && x.IsActive && (x.PaymentStatus == PaymentStatus.Free.ToString() || x.PaymentStatus == PaymentStatus.Success.ToString())).Select(x => x.StudentId).Distinct().ToListAsync();
+        }
+
+        public async Task<List<BatchSessionAttendance>> GetExistingAttendanceAsync(List<int> sessionIds, List<string> studentIds)
+        {
+            return await _context.BatchSessionAttendances.Where(x => sessionIds.Contains(x.BatchClassSessionId.Value) && studentIds.Contains(x.StudentId)).ToListAsync();
         }
 
         public async Task<PageResultDto<GetAdminTeacherAssignDto>> GetListAdminTeacherAssignAsync(int pageNumber, int pageSize, AdminTeacherAssingStatus status)
@@ -611,7 +631,228 @@ namespace Infrastructure.Repositories
             };
         }
 
+        public async Task<GetListParticularStudentSummeryDto> GetParticularStudnetAttendanceSummeryAsync(int batchId, string studentId)
+        {
+            // 1. Validate student enrollment
+            var isEnrolled = await _context.Enrollments.AsNoTracking().AnyAsync(x => x.BatchId == batchId && x.StudentId == studentId && x.IsActive && (x.PaymentStatus == PaymentStatus.Free.ToString() || x.PaymentStatus == PaymentStatus.Success.ToString()));
 
+            if (!isEnrolled)
+                throw new KeyNotFoundException("Student is not enrolled in this batch.");
+
+            // 2. Get student profile
+            var student = await _context.StudentProfiles.AsNoTracking().Where(x => x.UserId == studentId && x.IsActive)
+                .Select(x => new
+                {
+                    StudentId = x.UserId,
+                    StudentName = x.user.FullName,
+                    ProfileImage = x.ProfileImageUrl
+                }).FirstOrDefaultAsync();
+
+            if (student == null)
+                throw new KeyNotFoundException("Student profile not found.");
+
+            // 3. Get all active batch sessions
+            var sessions = await _context.BatchClassSessions.AsNoTracking().Where(x =>
+                    x.BatchId == batchId &&
+                    x.IsActive).OrderByDescending(x => x.SessionDate).ThenByDescending(x => x.StartTime)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.SessionDate,
+                    x.StartTime,
+                    x.EndTime
+                })
+                .ToListAsync();
+
+            var sessionIds = sessions.Select(x => x.Id).ToList();
+
+            // 4. Get student's attendance records
+            var attendanceRecords = await _context.BatchSessionAttendances.AsNoTracking().Where(x => x.StudentId == studentId && x.IsActive && x.BatchClassSessionId.HasValue && sessionIds.Contains(x.BatchClassSessionId.Value))
+                .Select(x => new
+                {
+                    x.Id,
+                    SessionId = x.BatchClassSessionId!.Value,
+                    x.Status,
+                    x.Remarks,
+                    x.MarkedAt
+                }).ToListAsync();
+
+            // 5. Handle multiple records per session
+            // Ideally database should enforce one active record per student/session.
+            var attendanceDictionary = attendanceRecords.GroupBy(x => x.SessionId).ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.MarkedAt).ThenByDescending(x => x.Id).First());
+
+            // 6. Map all sessions with attendance
+            var sessionHistory = sessions
+                .Select(session =>
+                {
+                    attendanceDictionary.TryGetValue(
+                        session.Id,
+                        out var attendance);
+
+                    return new GetParticularStudentAttendanceHistoryDto
+                    {
+                        AttendanceId = attendance?.Id ?? 0,
+                        SessionId = session.Id,
+                        SessionDate = session.SessionDate,
+                        StartTime = session.StartTime,
+                        EndTime = session.EndTime,
+
+                        Status = attendance?.Status ?? "Not Marked",
+
+                        Remarks = attendance?.Remarks,
+
+                        MarkedAt = attendance?.MarkedAt
+                    };
+                })
+                .ToList();
+
+            // 7. Calculate summary
+            var totalClasses = sessionHistory.Count;
+
+            var present = sessionHistory.Count(x => x.Status == AttendanceStatus.Present.ToString());
+
+            var absent = sessionHistory.Count(x => x.Status == AttendanceStatus.Absent.ToString());
+
+            var notMarked = sessionHistory.Count(x => x.Status == "Not Marked");
+
+            var averageAttendance = totalClasses > 0 ? Math.Round((decimal)present / totalClasses * 100, 2) : 0;
+
+            // 8. Return final response
+            return new GetListParticularStudentSummeryDto
+            {
+                StudentId = student.StudentId!,
+                StudentName = student.StudentName,
+                StudentProfilePic = student.ProfileImage,
+
+                TotalClasses = totalClasses,
+                Present = present,
+                Absent = absent,
+                NotMarked = notMarked,
+
+                AverageAttendance = averageAttendance,
+
+                Summary = sessionHistory
+            };
+        }
+
+        public async Task<List<BatchClassSession>> GetSessionsByIdsAsync(List<int> sessionIds)
+        {
+            return await _context.BatchClassSessions.AsNoTracking().Where(x => sessionIds.Contains(x.Id) && x.IsActive).ToListAsync();
+        }
+
+        public async Task<GetStudentAttendanceSummeryDto> GetStudnetAttendanceSummeryAsync(int batchId)
+        {
+            var totalStudent = await _context.Enrollments.CountAsync(x => x.BatchId == batchId && x.IsActive && (x.PaymentStatus == PaymentStatus.Free.ToString() || x.PaymentStatus == PaymentStatus.Success.ToString()));
+
+            var totalClasses = await _context.BatchClassSessions.CountAsync(x => x.BatchId == batchId && x.IsActive);
+
+            var totalPresent = await _context.BatchSessionAttendances.CountAsync(x => x.Status == AttendanceStatus.Present.ToString() && x.BatchClassSession.BatchId == batchId && x.IsActive);
+
+            var today = DateTime.Today;
+
+            var tomorrow = today.AddDays(1);
+
+            var presentToday = await _context.BatchSessionAttendances.CountAsync(x => x.MarkedAt >= today && x.MarkedAt < tomorrow && x.Status == AttendanceStatus.Present.ToString() && x.BatchClassSession.BatchId == batchId && x.IsActive);
+
+            var absentToday = await _context.BatchSessionAttendances.CountAsync(x => x.MarkedAt >= today && x.MarkedAt < tomorrow && x.Status == AttendanceStatus.Absent.ToString() && x.BatchClassSession.BatchId == batchId && x.IsActive);
+
+            decimal totalPossibleAttendance = (decimal)totalStudent * totalClasses;
+
+            decimal batchAverageAttendance = totalPossibleAttendance > 0 ? Math.Round((decimal)totalPresent / totalPossibleAttendance * 100, 2) : 0;
+
+            var studentAttendance = await _context.Enrollments.Where(x => x.BatchId == batchId && x.IsActive && (x.PaymentStatus == PaymentStatus.Free.ToString() || x.PaymentStatus == PaymentStatus.Success.ToString()))
+      .Select(student => new GetListStudnetAttendanceDto
+      {
+
+          StudentId = student.StudentId,
+
+          StudentName = student.user.FullName,
+
+          StudnetProfileImage = _context.StudentProfiles.Where(p => p.UserId == student.StudentId && p.IsActive).Select(p => p.ProfileImageUrl).FirstOrDefault(),
+
+          Present = _context.BatchSessionAttendances.Count(a => a.StudentId == student.StudentId && a.IsActive && a.Status == AttendanceStatus.Present.ToString() && a.BatchClassSession.BatchId == batchId),
+
+          Absent = _context.BatchSessionAttendances.Count(a => a.StudentId == student.StudentId && a.IsActive && a.Status == AttendanceStatus.Absent.ToString() && a.BatchClassSession.BatchId == batchId),
+
+          AverageAttendance = totalClasses > 0 ? Math.Round((decimal)_context.BatchSessionAttendances.Count(a => a.StudentId == student.StudentId && a.IsActive && a.Status == AttendanceStatus.Present.ToString() && a.BatchClassSession.BatchId == batchId) / totalClasses * 100, 2) : 0
+      }).ToListAsync();
+            // 8. Return summary
+            return new GetStudentAttendanceSummeryDto
+            {
+                BatchId = batchId,
+                TotalStudent = totalStudent,
+                BatchAverageAttendance = batchAverageAttendance,
+                PresentToday = presentToday,
+                AbsentToday = absentToday,
+                ParticularAttendnace = studentAttendance
+            };
+        }
+
+        public async Task<PageResultDto<GetBatchClassSessionDto>> GetTeacherBatchClassSessionsAsync(string teacherId, int? batchId, int pageNumber, int pageSize)
+        {
+            // 1. Base query
+            var query = _context.BatchClassSessions
+                .AsNoTracking()
+                .Where(x =>
+                    x.TeacherId == teacherId &&
+                    x.IsActive);
+
+            // 2. Optional batch filter
+            if (batchId.HasValue && batchId.Value > 0)
+            {
+                query = query.Where(x => x.BatchId == batchId.Value);
+            }
+
+            // 3. Total records
+            var totalRecords = await query.CountAsync();
+
+            // 4. Pagination + DTO projection
+            var items = await query
+                .OrderByDescending(x => x.SessionDate)
+                .ThenByDescending(x => x.StartTime)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new GetBatchClassSessionDto
+                {
+                    BatchClassSessionId = x.Id,
+
+                    BatchId = x.BatchId.Value,
+                    BatchName = x.batch.Name,
+
+                    BatchScheduleId = x.BatchScheduleId.Value,
+
+                    SessionDate = x.SessionDate,
+                    StartTime = x.StartTime,
+                    EndTime = x.EndTime,
+
+                    TeacherId = x.TeacherId,
+                    TeacherName = x.Teacher != null
+                        ? x.Teacher.FullName
+                        : null,
+
+                    CourseModuleId = x.CourseModuleId,
+
+                    Status = x.Status,
+
+                    IsReschedule = x.IsReschedule,
+                    OriginalSessionDate = x.OriginalSessionDate,
+                    OriginalStartTime = x.OriginalStartTime,
+                    OriginalEndTime = x.OriginalEndTime,
+                    RescheduleReason = x.RescheduleReason,
+
+                    IsActive = x.IsActive
+                })
+                .ToListAsync();
+
+            // 5. Response
+            return new PageResultDto<GetBatchClassSessionDto>
+            {
+                Items = items,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalRecords,
+            };
+        }
 
         public async Task<GetTeacherBatchOverviewDto> GetTeacherBatchOverViewAsync(int batchId, string teacherId)
         {
@@ -766,13 +1007,13 @@ namespace Infrastructure.Repositories
                 })
                 .ToListAsync();
 
-            var courseSyllabus = await _context.CourseSyllabus.AsNoTracking().Where(x => x.CourseId == batch.CourseId).Select(x=> new GetCourseSyllabusDto
+            var courseSyllabus = await _context.CourseSyllabus.AsNoTracking().Where(x => x.CourseId == batch.CourseId).Select(x => new GetCourseSyllabusDto
             {
                 Id = x.Id,
-                Title =x.Title,
+                Title = x.Title,
                 CouseId = x.CourseId ?? 0,
-                Description =x.Description,
-                DisplayOrder =x.DisplayOrder ?? 0
+                Description = x.Description,
+                DisplayOrder = x.DisplayOrder ?? 0
             }).ToListAsync();
 
 
@@ -1010,6 +1251,11 @@ namespace Infrastructure.Repositories
             };
 
             return result;
+        }
+
+        public async Task<bool> IsTeacherAssignedToBatchAsync(int batchId, string teacherId)
+        {
+            return await _context.BatchTeachers.AsNoTracking().AnyAsync(x => x.BatchId == batchId && x.TeacherId == teacherId && x.IsActive);
         }
 
         public async Task<bool> PrimaryTeacherExistsAsync(int batchId)

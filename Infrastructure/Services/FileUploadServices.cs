@@ -131,55 +131,139 @@ namespace Infrastructure.Services
             return $"/uploads/{folderName}/{storedName}";
         }
 
-        public async Task<FileUploadResultDto> UploadCloubinaryAsync(IFormFile file, string folder, CancellationToken cancellationToken = default)
+
+        public async Task<FileUploadResultDto> UploadCloubinaryAsync(  IFormFile file,  string folder, CancellationToken cancellationToken = default)
         {
+            // 1. Validate file
             if (file == null || file.Length == 0)
             {
-                throw new ArgumentException("File is required.");
+                throw new InvalidOperationException(
+                    "Please select a valid file.");
             }
-
-            // 5 MB maximum file size
-            const long maxFileSize = 5 * 1024 * 1024;
-
-            if (file.Length > maxFileSize)
-            {
-                throw new ArgumentException(
-                    "File size cannot be greater than 5 MB.");
-            }
-
-          
 
             if (string.IsNullOrWhiteSpace(folder))
             {
-                throw new ArgumentException(
-                    "Cloudinary folder is required.");
+                throw new InvalidOperationException(
+                    "Cloudinary folder name is required.");
             }
 
-            var publicId = $"{folder.Trim('/')}/{Guid.NewGuid():N}";
+            // 2. Validate extension
+            var extension = Path.GetExtension(file.FileName)
+                .ToLowerInvariant();
 
+            var allowedExtensions = new[]
+            {
+        ".jpg", ".jpeg", ".png", ".webp", ".gif",
+        ".pdf", ".doc", ".docx", ".txt", ".mp4"
+    };
+
+            if (!allowedExtensions.Contains(extension))
+            {
+                throw new InvalidOperationException(
+                    "File type is not supported.");
+            }
+
+            // 3. Generate unique PublicId
+            var publicId = Guid.NewGuid().ToString("N");
+
+            // 4. Create file stream
             await using var stream = file.OpenReadStream();
 
-            var uploadParams = new ImageUploadParams
-            {
-                File = new FileDescription(file.FileName, stream),
-                PublicId = publicId,
-                Overwrite = false
-            };
+            var fileDescription = new FileDescription(
+                Path.GetFileName(file.FileName),
+                stream
+            );
 
-            var result = await _cloudinary.UploadAsync(uploadParams);
+            // Common upload result
+            UploadResult uploadResult;
 
-            if (result.Error != null)
+            // 5. Upload according to file type
+            switch (extension)
             {
-                throw new Exception(
-                    $"Cloudinary upload failed: {result.Error.Message}");
+                // IMAGE FILES
+                case ".jpg":
+                case ".jpeg":
+                case ".png":
+                case ".webp":
+                case ".gif":
+                    {
+                        var uploadParams = new ImageUploadParams
+                        {
+                            File = fileDescription,
+                            PublicId = publicId,
+                            Folder = folder
+                        };
+
+                        uploadResult = await _cloudinary.UploadAsync(
+                            uploadParams,
+                            cancellationToken
+                        );
+
+                        break;
+                    }
+
+                // VIDEO FILES
+                case ".mp4":
+                    {
+                        var uploadParams = new VideoUploadParams
+                        {
+                            File = fileDescription,
+                            PublicId = publicId,
+                            Folder = folder
+                        };
+
+                        uploadResult = await _cloudinary.UploadAsync(
+                            uploadParams,
+                            cancellationToken
+                        );
+
+                        break;
+                    }
+
+                // DOCUMENT FILES
+                case ".pdf":
+                case ".doc":
+                case ".docx":
+                case ".txt":
+                    {
+                        var uploadParams = new RawUploadParams
+                        {
+                            File = fileDescription,
+                            PublicId = $"{publicId}{extension}",
+                            Folder = folder
+                        };
+
+                        uploadResult = await _cloudinary.UploadAsync(
+                            uploadParams,"raw",
+                            cancellationToken
+                        );
+
+                        break;
+                    }
+
+                default:
+                    throw new InvalidOperationException(
+                        "Unsupported file format.");
             }
 
+            // 6. Check Cloudinary response
+            if (uploadResult == null || uploadResult.Error != null)
+            {
+                throw new Exception(
+                    uploadResult?.Error?.Message ??
+                    "File upload failed on Cloudinary.");
+            }
+
+            // 7. Return common response
             return new FileUploadResultDto
             {
-                PublicId = result.PublicId,
-                Url = result.SecureUrl?.ToString() ?? result.Url?.ToString() ?? string.Empty
+                PublicId = uploadResult.PublicId,
+                Url = uploadResult.SecureUrl?.ToString()
+                      ?? uploadResult.Url?.ToString()
+                      ?? string.Empty
             };
         }
+
 
         private string ResolvePath(string relativePath)
         {

@@ -1,6 +1,7 @@
 ﻿using Core.Dtos.Batch;
 using Core.Dtos.Common;
 using Core.Dtos.Courses;
+using Core.Dtos.Teacher.Attendance;
 using Core.Dtos.Teacher.Batch;
 using Core.Interface.Services;
 using Domain.Entities;
@@ -47,6 +48,15 @@ namespace Nexvara.WebAPI.Controllers
                 return Unauthorized();
             var response = await _teacherServices.AssignTeacherAsync(batchId, dto, userId);
             return StatusCode(response.ResponseCode, response);
+        }
+
+        [HttpPost("Create-Student-Attendance")]
+        public async Task<IActionResult> CreateStudentAttendance( [FromBody] CreateStudentAttendanceDto dto)
+        {
+            var response = await _teacherServices.CreateStudentAttendanceAsync(dto);
+            if (!response.Success)
+                return BadRequest(response);
+            return Ok(response);
         }
         #endregion
 
@@ -198,6 +208,38 @@ namespace Nexvara.WebAPI.Controllers
         public async Task<IActionResult> GetBatchOverview(int batchId)
         {
             var response = await _teacherServices.GetTeacherBatchOverViewAsync(batchId);
+            return StatusCode(response.ResponseCode, response);
+        }
+
+
+        [HttpGet("Get-List-AttendanceSummery/{batchId:int}/teacher")]
+        public async Task<IActionResult> GetListAttendanceSummery(int batchId)
+        {
+            var userId = _userManger.GetUserId(User);
+            if (string.IsNullOrWhiteSpace(userId))
+                return Unauthorized();
+            var response = await _teacherServices.GetStudnetAttendanceSummeryAsync(batchId);
+            return StatusCode(response.ResponseCode, response);
+        }
+
+        [HttpGet("Get-List-Particular-Student/{studentId}/AttendanceSummary/{batchId:int}")]
+        public async Task<IActionResult> GetListParticularStudentAttendanceSummery(string studentId, int batchId)
+        {
+            var userId = _userManger.GetUserId(User);
+            if (string.IsNullOrWhiteSpace(userId))
+                return Unauthorized();
+            var response = await _teacherServices.GetParticularStudnetAttendanceSummeryAsync(batchId, studentId);
+            return StatusCode(response.ResponseCode, response);
+        }
+
+
+        [HttpGet("Get-List-BatchClassSession")]
+        public async Task<IActionResult> GetListParticularStudentAttendanceSummery([FromQuery] int? batchId = null, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+        {
+            var userId = _userManger.GetUserId(User);
+            if (string.IsNullOrWhiteSpace(userId))
+                return Unauthorized();
+            var response = await _teacherServices.GetTeacherBatchClassSessionsAsync(batchId, pageNumber,pageSize);
             return StatusCode(response.ResponseCode, response);
         }
         #endregion

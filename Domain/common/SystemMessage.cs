@@ -87,6 +87,16 @@ namespace Domain.common
         public const string EnrollmentCreatedPaymentPending = "Enrollment created. Payment is pending.";
         public const string AlreadyPlaceinTable = "This Display order no syllabus Already Exists.";
         public const string SyllabusInActive = "This Syllabus is InActive Please Conntact Administration.";
+        public const string RequiredAttendanceRecord = "Attendance records are required.";
+        public const string TeacherAuthenticationRequired = "Teacher Authentication is required.";
+        public const string InvalidStudentId = "Invalid Student Id Found.";
+        public const string InvalidbatchClassSessionId = "Invalid Batch Class Session Id.";
+        public const string InvalidAttendanceStatus = "Invalid Attendance Status.";
+        public const string DuplicateStudentAttendance = "Duplicate student attendance records found.";
+        public const string OneOrMoreSessionInvalid = "One or more sessions are invalid or inactive.";
+        public const string AttendanceSessionbelongSameBatch = "Attendance sessions must belong to the same batch.";
+        public const string YouAreNotAssignedThisBatch = "You are not assigned to this batch.";
+        public const string SomeStudnetAreNotEnrolled = "Some students are not enrolled in this batch.";
 
     }
 }

@@ -2,8 +2,10 @@
 using Core.Dtos.Batch;
 using Core.Dtos.Common;
 using Core.Dtos.Courses;
+using Core.Dtos.Teacher.Attendance;
 using Core.Dtos.Teacher.Batch;
 using Domain.Entities;
+using Domain.Entities.Student;
 using Domain.Entities.Teacher;
 using Domain.Enums;
 using System;
@@ -48,6 +50,19 @@ namespace Core.Interface.Repository
         Task<PageResultDto<GetActiveTeacherBatchDto>> GetMyBatchesAsync( string teacherId,  PaginationRequestDto pagination, TeacherBatchFilterDto filter);
         Task<GetTeacherBatchOverviewDto> GetTeacherBatchOverViewAsync(int batchId ,string teacherId);
 
+        //teacher Manual Attandnce for BatchSession Attendance
+        Task<List<BatchClassSession>> GetSessionsByIdsAsync(List<int> sessionIds);
+
+        Task<List<string>> GetEnrolledStudentIdsAsync(  int batchId, List<string> studentIds);
+
+        Task<List<BatchSessionAttendance>> GetExistingAttendanceAsync( List<int> sessionIds, List<string> studentIds);
+
+        Task AddAttendanceRangeAsync(List<BatchSessionAttendance> attendance);
+        Task<bool> IsTeacherAssignedToBatchAsync( int batchId,  string teacherId);
+        Task<GetStudentAttendanceSummeryDto> GetStudnetAttendanceSummeryAsync(int batchId);
+        Task<GetListParticularStudentSummeryDto> GetParticularStudnetAttendanceSummeryAsync(int batchId,string studentId);
+
+        Task<PageResultDto<GetBatchClassSessionDto>> GetTeacherBatchClassSessionsAsync( string teacherId,  int? batchId,  int pageNumber,  int pageSize);
 
     }
 }

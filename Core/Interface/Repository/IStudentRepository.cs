@@ -29,7 +29,7 @@ namespace Core.Interface.Repository
         Task<BatchStudent?> UpdateBatchStudentAsync(int Id);
 
         //New Batch Code 
-        Task<ExploreCourseResponseDto<ExploreBatchDto>> GetExploreCoursesAsync(ExploreCourseRequestDto request);
+        Task<ExploreCourseResponseDto<ExploreBatchDto>> GetExploreCoursesAsync(ExploreCourseRequestDto request, string userId);
 
         //Enrollment
         Task CreateStudentEnrollmentAsync(Enrollment entity);
